@@ -2,7 +2,7 @@
 This example demonstrates how to create a managed ssh session to a known host identfied by a ocid 
 #>
 
-param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port, $IsSsHSession, $OsSystemUser)
+param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port, $OsSystemUser)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
@@ -23,11 +23,9 @@ try {
     if ($null -eq $Port) {
         Out-Host -InputObject "Using port 22"
     }
-    if (($null -eq $IsSsHSession) -or ([Bool]'True' -eq $IsSsHSession)) {
-        $CreateManagedSshSession = [Bool]'True'
-        Out-Host -InputObject "Creating managed SSH session"
-    }
 
+    Out-Host -InputObject "Creating managed SSH session"
+    
     $OsUser = if ($null -eq $OsSystemUser) { "opc" } else { $OsSystemUser }
     Out-Host -InputObject "User for session: $OsUser"
 
