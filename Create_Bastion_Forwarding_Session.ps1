@@ -2,12 +2,12 @@
 This example demonstrates how to create a port forwarding ssh session to a known host identfied by an ip-address
 #>
 
-param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port)
+param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port=22)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 try {
-
+    
     if ($null -eq $CompartmentId) {
         Throw "CompartmentId must be provided"
     }
@@ -20,11 +20,9 @@ try {
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
     }
-    if ($null -eq $Port) {
-        Out-Host -InputObject "Using port 22"
-    }
-
+    
     Out-Host -InputObject "Creating Port Forwarding Session"
+    Out-Host -InputObject "Using port: $Port"
 
     # Import the modules
     Import-Module OCI.PSModules.Bastion
@@ -38,7 +36,7 @@ try {
     $TargetResourceDetails.TargetResourcePrivateIpAddress   = $TargetHost    
     
     # Generic for both models
-    $TargetResourceDetails.TargetResourcePort               = if ($null -eq $Port) { 22 } else { $Port }
+    $TargetResourceDetails.TargetResourcePort               = $Port
 
     # Details of keyfile
     $KeyDetails                  = New-Object -TypeName 'Oci.BastionService.Models.PublicKeyDetails'
@@ -53,9 +51,13 @@ try {
     $SessionDetails.KeyType               = "PUB"
     $SessionDetails.TargetResourceDetails = $TargetResourceDetails
     $SessionDetails.KeyDetails            = $KeyDetails
-
-    # Last statement, object will be returned to calling session
-    New-OciBastionSession -CreateSessionDetails $SessionDetails
+    
+    $BastionSession = New-OciBastionSession -CreateSessionDetails $SessionDetails
+    
+    Out-Host -InputObject "Waiting for session creation of bastion to complete"
+    $BastionSession = Get-OCIBastionSession -SessionId $BastionSession.Id -WaitForLifecycleState Active, Failed
+    
+    $BastionSession
 }
 finally {
     # To Maximize possible clean ups, continue on error 
