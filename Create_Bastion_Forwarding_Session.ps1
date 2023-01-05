@@ -2,15 +2,12 @@
 This example demonstrates how to create a port forwarding ssh session to a known host identfied by an ip-address
 #>
 
-param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port=22)
+param($BastionId, $TargetHost, $PublicKeyFile, $Port=22)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 try {
-    
-    if ($null -eq $CompartmentId) {
-        Throw "CompartmentId must be provided"
-    }
+
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
@@ -54,7 +51,7 @@ try {
     
     $BastionSession = New-OciBastionSession -CreateSessionDetails $SessionDetails
     
-    Out-Host -InputObject "Waiting for session creation of bastion to complete"
+    Out-Host -InputObject "Waiting for creation of bastion session to complete"
     $BastionSession = Get-OCIBastionSession -SessionId $BastionSession.Id -WaitForLifecycleState Active, Failed
     
     $BastionSession

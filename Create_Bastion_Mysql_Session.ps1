@@ -3,64 +3,62 @@ This example demonstrates how to connect securely to a MySQL DB System endpoint 
 a bastion and a connection
 #>
 
-param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port=22)
+param($BastionId, $ConnectionId, $PublicKeyFile)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 try {
     
-    if ($null -eq $CompartmentId) {
-        Throw "CompartmentId must be provided"
-    }
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
-    if ($null -eq $TargetHost) {
-        Throw "TargetHost ip must be provided"
+    if ($null -eq $ConnectionId) {
+        Throw "ConnectionId must be provided"
     }
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
     }
-    
-    Out-Host -InputObject "Creating Port Forwarding Session"
-    Out-Host -InputObject "Using port: $Port"
 
-    # Import the modules
-    Import-Module OCI.PSModules.Bastion
+    $PrivateKeyFile = $PublicKeyFile.replace(".pub", ".ppk")
+    if  ($false -eq (Test-Path $PrivateKeyFile)) {
+        Throw "$PrivateKeyFile does not exist"
+    }
+    Out-Host -InputObject "Will be using private key file $PrivateKeyFile"
 
-    # Get Bastion object, use MaxSessionTtlInSeconds
-    $BastionService         = Get-OCIBastion -BastionId $BastionId
-    $MaxSessionTtlInSeconds = $BastionService.MaxSessionTtlInSeconds
+    $Connection = Get-OCIDatabasetoolsConnection -DatabaseToolsConnectionId $ConnectionId
 
-    # Details of target
-    $TargetResourceDetails                                  = New-Object -TypeName 'Oci.BastionService.Models.CreatePortForwardingSessionTargetResourceDetails'
-    $TargetResourceDetails.TargetResourcePrivateIpAddress   = $TargetHost    
-    
-    # Generic for both models
-    $TargetResourceDetails.TargetResourcePort               = $Port
+    $MysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $Connection.RelatedResource.Identifier
+    $Secret = Get-OCISecretsSecretBundle -SecretId $Connection.UserPassword.SecretId
+ 
+    # Assign to local vcariables for readability
+    $UserName = $Connection.UserName
+    $PasswordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
+    $TargetHost = $MysqlDbSystem.IpAddress
+    $Port = $MysqlDbSystem.Port
+ 
+    # Move into dir and execute there ...
+    Push-Location
+    cd $PSScriptRoot
+    $BastionSession=.\Create_Bastion_Forwarding_Session.ps1 -BastionId $BastionId -TargetHost $TargetHost -PublicKeyFile $PublicKeyFile -Port $Port
+    Pop-Location
 
-    # Details of keyfile
-    $KeyDetails                  = New-Object -TypeName 'Oci.BastionService.Models.PublicKeyDetails'
-    $K                           = Get-Content $PublicKeyFile
-    $KeyDetails.PublicKeyContent = $K
+    # Create putty command string that will be accepted ...
+    $Str = $BastionSession.SshMetadata["command"]
+    $Str = $Str.replace("ssh", "putty")
+    $Str = $Str.replace("<privateKey>", $PrivateKeyFile)
+    $Str = $Str.replace("<localPort>", $Port)
+    $Str = $Str.replace("-p", "-P")
+    $Str = $Str.replace("~", "$HOME")
+    $Str = $Str.replace("/", "\")
 
-    # The actual session
-    $SessionDetails                       = New-Object -TypeName 'Oci.BastionService.Models.CreateSessionDetails'
-    $SessionDetails.DisplayName           = -join("BastionSession-", (Get-Random))
-    $SessionDetails.SessionTtlInSeconds   = $MaxSessionTtlInSeconds
-    $SessionDetails.BastionId             = $BastionId
-    $SessionDetails.KeyType               = "PUB"
-    $SessionDetails.TargetResourceDetails = $TargetResourceDetails
-    $SessionDetails.KeyDetails            = $KeyDetails
-    
-    $BastionSession = New-OciBastionSession -CreateSessionDetails $SessionDetails
-    
-    Out-Host -InputObject "Waiting for session creation of bastion to complete"
-    $BastionSession = Get-OCIBastionSession -SessionId $BastionSession.Id -WaitForLifecycleState Active, Failed
-    
+    Out-Host -InputObject "CONN : $Str"
+
     $BastionSession
 }
 finally {
+
+
+
     # To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
         
