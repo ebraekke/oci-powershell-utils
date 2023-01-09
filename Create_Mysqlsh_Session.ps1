@@ -81,7 +81,7 @@ try {
     # Move into dir and execute there ...
     Push-Location
     cd $PSScriptRoot
-    $BastionSession=.\Create_Bastion_Util_Forwarding_Session.ps1 -BastionId $BastionId -TargetHost $TargetHost -PublicKeyFile (-join($KeyFile, ".pub")) -Port $Port
+    $BastionSession=.\Create_Bastion_SSH_Port_Forwarding_Session.ps1 -BastionId $BastionId -TargetHost $TargetHost -PublicKeyFile (-join($KeyFile, ".pub")) -Port $Port
     Pop-Location
 
     # Create ssh command argument string with relevant parameters

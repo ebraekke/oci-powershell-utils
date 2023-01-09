@@ -1,29 +1,22 @@
 # oci-powershell-utils
 
-Powershell scripts that utilize the the PowerShell api for OCI 
+Powershell scripts that utilize the the PowerShell API for OCI.
 
+The goal is to highlight the possibilities inherent in the robust feature set of OCI. 
+Sepscifically: Bastion Service and Database Tools.  
 
-# "Huskelapp" 
+## Content 
 
-$PasswordDetails=New-Object -TypeName 'Oci.DatabasetoolsService.Models.DatabaseToolsUserPasswordDetails'
+Two utility scripts that also can be used stand-alone: 
 
-$MySqlDetails=New-Object -TypeName 'Oci.DatabasetoolsService.Models.CreateDatabaseToolsRelatedResourceMySqlDetails'
+* Create_Bastion_Managed_SSH_Session.ps1
+* Create_Bastion_SSH_Port_Forwarding_Session.ps1
 
-$MySqlDetails.EntityType="MYSQL"
-$MySqlDetails.Identifier="ocid1.mysqldbsystem.oc1.eu-frankfurt-1.aaaaaaaasdkzjnwuaflsvhryxu7pw63igyhoj6xbmobi4wgkfnlumkpuwjyq"
+Database connectivity through Bastion: 
 
-$ConnectionMySqlDetails=New-Object -TypeName 'Oci.DatabasetoolsService.Models.CreateDatabaseToolsConnectionMySqlDetails'
+* Create_Mysqlsh_Session.ps1
 
-$ConnectionMySqlDetails.RelatedResource=$MySqlDetails
+## Windows only? 
 
-RelatedResource    :
-ConnectionString   :
-UserName           :
-UserPassword       :
-AdvancedProperties :
-KeyStores          :
-PrivateEndpointId  :
-DisplayName        :
-CompartmentId      :
-DefinedTags        ,:
-FreeformTags       :
+PowerShell is cross-platform, so it should work.  
+But, I have not tried. 
