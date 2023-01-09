@@ -9,6 +9,46 @@ $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 try {
     
+    function Verify-Mysqlsh {
+        try {
+            # run process 
+            Start-Process -FilePath "mysqlsh" -ArgumentList "--help" -WindowStyle Hidden 
+        }
+        catch {
+            throw "mysqlsh executable not found"
+        }
+    }
+
+    function Verify-SshSuite {
+        try {
+            # run process 
+            Start-Process -FilePath "ssh" -ArgumentList "--help" -WindowStyle Hidden 
+        }
+        catch {
+            throw "ssh executable not found"
+        }
+        try {
+            # run process 
+            Start-Process -FilePath "ssh-keygen" -ArgumentList "--help" -WindowStyle Hidden 
+        }
+        catch {
+            throw "ssh-keygen executable not found"
+        }
+    }
+
+    function Verify-TmpDir {
+        try {
+            Test-Path $PSScriptRoot/tmp | Out-Null
+        }
+        catch {
+            throw "Required directory $PSScriptRoot/tmp does not exist"
+        }    
+    }
+
+    Verify-Mysqlsh
+    Verify-SshSuite
+    Verify-TmpDir
+
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
@@ -29,9 +69,14 @@ try {
     # Range 3307 to 3399
     $LocalPort = Get-Random -Minimum 3307 -Maximum 3399
  
-    # Generate ephemeral key pair in ./tmp dir.  Send "y" just in case we generate a name for a file that has not been deleted 
-    $KeyFile = -join("$PSScriptRoot/tmp/key-",(Get-Random))
-    Out-Host -InputObject "y" | ssh-keygen -t rsa -b 2048 -f $KeyFile -q -N '' 
+    # Generate ephemeral key pair in ./tmp dir.  
+    # name: bastionkey-yyyy_dd_MM_HH_mm_ss-$LocalPort
+    #
+    # Process will fail if another key with same name exists, in that case -- do not delete key file(s) on exit
+    $DeleteKeyOnExit = $false
+    $KeyFile = -join("$PSScriptRoot/tmp/bastionkey-",(Get-Date -Format "yyyy_MM_dd_HH_mm_ss"),"-$LocalPort")
+    ssh-keygen -t rsa -b 2048 -f $KeyFile -q -N '' 
+    $DeleteKeyOnExit = $true
 
     # Move into dir and execute there ...
     Push-Location
@@ -45,8 +90,8 @@ try {
     $SshArgs = $SshArgs.replace("<privateKey>", $KeyFile)
     $SshArgs = $sshArgs.replace("<localPort>", $LocalPort)
 
-    Out-Host -InputObject "CONN : ssh $sshArgs"
-    # TODO: change from Minimized to Hidden when kill works 
+    # for debug, comment out for now
+    # Out-Host -InputObject "CONN : ssh $sshArgs"
     $SshProcess = Start-Process -FilePath "ssh" -ArgumentList $SshArgs -WindowStyle Hidden -PassThru
 
     $Password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($PasswordBase64))
@@ -57,10 +102,18 @@ finally {
     # To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
 
+    # Kill SSH process
     Stop-Process -InputObject $SshProcess
-    del $KeyFile
-    del (-join($KeyFile, ".pub"))
-        
+
+    # Delete ephemeral key pair if all went well
+    if ($true -eq $DeleteKeyOnExit) {
+        del $KeyFile
+        del (-join($KeyFile, ".pub"))    
+    } 
+    
+    # Kill Bastion session, with Force, ignore output (it is the work request id)
+    Remove-OCIBastionSession -SessionId $BastionSession.id -Force | Out-Null
+
     # Done, restore settings
     $ErrorActionPreference = $UserErrorActionPreference
 }
