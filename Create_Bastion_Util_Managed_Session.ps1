@@ -11,7 +11,7 @@ try {
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
-    if ($null -eq $TargetHost) {
+    if ($null -eq $TargetHostId) {
         Throw "TargetHost ocid  must be provided"
     }
     if ($null -eq $PublicKeyFile) {
