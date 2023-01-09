@@ -1,6 +1,6 @@
 <#
 This example demonstrates how to connect securely to a MySQL DB System endpoint using
-a bastion and a connection
+a bastion session and a connection
 #>
 
 param($BastionId, $ConnectionId)

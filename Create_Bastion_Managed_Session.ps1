@@ -2,15 +2,12 @@
 This example demonstrates how to create a managed ssh session to a known host identfied by a ocid 
 #>
 
-param($CompartmentId, $BastionId, $TargetHost, $PublicKeyFile, $Port, $OsSystemUser)
+param($BastionId, $TargetHostId, $PublicKeyFile, $Port=22, $OsUser="opc")
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 try {
 
-    if ($null -eq $CompartmentId) {
-        Throw "CompartmentId must be provided"
-    }
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
@@ -20,13 +17,8 @@ try {
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
     }
-    if ($null -eq $Port) {
-        Out-Host -InputObject "Using port 22"
-    }
-
+    Out-Host -InputObject "Using port $Port"
     Out-Host -InputObject "Creating managed SSH session"
-    
-    $OsUser = if ($null -eq $OsSystemUser) { "opc" } else { $OsSystemUser }
     Out-Host -InputObject "User for session: $OsUser"
 
     # Import the modules
@@ -39,7 +31,7 @@ try {
     # Managed Session
     $TargetResourceDetails                                        = New-Object -TypeName 'Oci.BastionService.Models.CreateManagedSshSessionTargetResourceDetails'
     $TargetResourceDetails.TargetResourceOperatingSystemUserName  = $OsUser
-    $TargetResourceDetails.TargetResourceId                       = $TargetHost
+    $TargetResourceDetails.TargetResourceId                       = $TargetHostId
     
     # Generic for both models
     $TargetResourceDetails.TargetResourcePort                         = if ($null -eq $Port) { 22 } else { $Port }
@@ -59,7 +51,12 @@ try {
     $SessionDetails.KeyDetails            = $KeyDetails
 
     # Last statement, object will be returned to calling session
-    New-OciBastionSession -CreateSessionDetails $SessionDetails
+    $BastionSession = New-OciBastionSession -CreateSessionDetails $SessionDetails
+
+    Out-Host -InputObject "Waiting for creation of bastion session to complete"
+    $BastionSession = Get-OCIBastionSession -SessionId $BastionSession.Id -WaitForLifecycleState Active, Failed
+    
+    $BastionSession
 }
 finally {
     # To Maximize possible clean ups, continue on error 
