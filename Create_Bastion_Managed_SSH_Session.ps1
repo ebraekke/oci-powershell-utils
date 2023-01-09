@@ -1,12 +1,16 @@
 <#
-This example demonstrates how to create a managed ssh session to a known host identfied by a ocid 
+This example demonstrates how to create a managed ssh session to a known host identfied by an ocid 
 #>
 
 param($BastionId, $TargetHostId, $PublicKeyFile, $Port=22, $OsUser="opc")
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
+
 try {
+
+    # Import the modules
+    Import-Module OCI.PSModules.Bastion
 
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
@@ -20,9 +24,6 @@ try {
     Out-Host -InputObject "Using port $Port"
     Out-Host -InputObject "Creating managed SSH session"
     Out-Host -InputObject "User for session: $OsUser"
-
-    # Import the modules
-    Import-Module OCI.PSModules.Bastion
 
     # Get Bastion object, use MaxSessionTtlInSeconds
     $BastionService         = Get-OCIBastion -BastionId $BastionId

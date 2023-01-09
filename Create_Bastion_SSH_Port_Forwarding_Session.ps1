@@ -6,7 +6,11 @@ param($BastionId, $TargetHost, $PublicKeyFile, $Port=22)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
+
 try {
+
+    # Import the modules
+    Import-Module OCI.PSModules.Bastion
 
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
@@ -20,9 +24,6 @@ try {
     
     Out-Host -InputObject "Creating Port Forwarding Session"
     Out-Host -InputObject "Using port: $Port"
-
-    # Import the modules
-    Import-Module OCI.PSModules.Bastion
 
     # Get Bastion object, use MaxSessionTtlInSeconds
     $BastionService         = Get-OCIBastion -BastionId $BastionId

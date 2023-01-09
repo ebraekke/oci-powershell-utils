@@ -7,43 +7,51 @@ param($BastionId, $ConnectionId)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
+
+function Verify-Mysqlsh {
+    try {
+        # run process 
+        Start-Process -FilePath "mysqlsh" -ArgumentList "--help" -WindowStyle Hidden 
+    }
+    catch {
+        throw "mysqlsh executable not found"
+    }
+}
+
+function Verify-SshSuite {
+    try {
+        # run process 
+        Start-Process -FilePath "ssh" -ArgumentList "--help" -WindowStyle Hidden 
+    }
+    catch {
+        throw "ssh executable not found"
+    }
+    try {
+        # run process 
+        Start-Process -FilePath "ssh-keygen" -ArgumentList "--help" -WindowStyle Hidden 
+    }
+    catch {
+        throw "ssh-keygen executable not found"
+    }
+}
+
+function Verify-TmpDir {
+    try {
+        Test-Path $PSScriptRoot/tmp | Out-Null
+    }
+    catch {
+        throw "Required directory $PSScriptRoot/tmp does not exist"
+    }    
+}
+
+# main()
 try {
     
-    function Verify-Mysqlsh {
-        try {
-            # run process 
-            Start-Process -FilePath "mysqlsh" -ArgumentList "--help" -WindowStyle Hidden 
-        }
-        catch {
-            throw "mysqlsh executable not found"
-        }
-    }
-
-    function Verify-SshSuite {
-        try {
-            # run process 
-            Start-Process -FilePath "ssh" -ArgumentList "--help" -WindowStyle Hidden 
-        }
-        catch {
-            throw "ssh executable not found"
-        }
-        try {
-            # run process 
-            Start-Process -FilePath "ssh-keygen" -ArgumentList "--help" -WindowStyle Hidden 
-        }
-        catch {
-            throw "ssh-keygen executable not found"
-        }
-    }
-
-    function Verify-TmpDir {
-        try {
-            Test-Path $PSScriptRoot/tmp | Out-Null
-        }
-        catch {
-            throw "Required directory $PSScriptRoot/tmp does not exist"
-        }    
-    }
+    # Import the modules
+    Import-Module OCI.PSModules.Bastion
+    Import-Module OCI.PSModules.Mysql
+    Import-Module OCI.PSModules.Databasetools
+    Import-Module OCI.PSModules.Secrets
 
     Verify-Mysqlsh
     Verify-SshSuite

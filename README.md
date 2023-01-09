@@ -1,9 +1,9 @@
-# oci-powershell-utils
+# ebraekke/oci-powershell-utils
 
-Powershell scripts that utilize the the PowerShell API for OCI.
+PowerShell scripts that utilize the the PowerShell API for OCI.
 
 The goal is to highlight the possibilities inherent in the robust feature set of OCI. 
-Sepscifically: Bastion Service and Database Tools.  
+Specifically: Bastion Service and Database Tools.  
 
 ## Content 
 
@@ -15,6 +15,9 @@ Two utility scripts that also can be used stand-alone:
 Database connectivity through Bastion: 
 
 * Create_Mysqlsh_Session.ps1
+
+## Requirements 
+
 
 ## Windows only? 
 
