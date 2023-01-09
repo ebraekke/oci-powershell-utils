@@ -3,7 +3,10 @@ This example demonstrates how to connect securely to a MySQL DB System endpoint 
 a bastion session and a connection
 #>
 
-param($BastionId, $ConnectionId)
+param(
+    [String]$BastionId, 
+    [String]$ConnectionId
+)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 

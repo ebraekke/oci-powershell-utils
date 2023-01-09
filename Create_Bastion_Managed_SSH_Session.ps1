@@ -2,7 +2,13 @@
 This example demonstrates how to create a managed ssh session to a known host identfied by an ocid 
 #>
 
-param($BastionId, $TargetHostId, $PublicKeyFile, $Port=22, $OsUser="opc")
+param (
+    [String]$BastionId, 
+    [String]$TargetHostId,
+    [String]$PublicKeyFile,
+    [Int32]$Port=22,
+    [String]$OsUser="opc"
+)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
@@ -21,6 +27,7 @@ try {
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
     }
+    
     Out-Host -InputObject "Using port $Port"
     Out-Host -InputObject "Creating managed SSH session"
     Out-Host -InputObject "User for session: $OsUser"

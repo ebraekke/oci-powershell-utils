@@ -2,7 +2,12 @@
 This example demonstrates how to create a port forwarding ssh session to a known host identfied by an ip-address
 #>
 
-param($BastionId, $TargetHost, $PublicKeyFile, $Port=22)
+param (
+    [String]$BastionId, 
+    [String]$TargetHost,
+    [String]$PublicKeyFile,
+    [Int32]$Port=22
+)
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
