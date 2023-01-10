@@ -11,54 +11,43 @@ param(
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 
-function Verify-Mysqlsh {
+function Test-Executable {
+    param(
+        [String]$ExeName, 
+        [String]$ExeArguments
+    )
+
+    if ($null -eq $ExeName) {
+        Throw "ExeName must be provided"
+    }
+    if ($null -eq $ExeArguments) {
+        Throw "ExeArguments must be provided"
+    }
+
     try {
         # run process 
-        Start-Process -FilePath "mysqlsh" -ArgumentList "--help" -WindowStyle Hidden 
+        Start-Process -FilePath $ExeName -ArgumentList $ExeArguments -WindowStyle Hidden 
     }
     catch {
-        throw "mysqlsh executable not found"
+        throw "$ExeName executable not found"
     }
 }
 
-function Verify-SshSuite {
-    try {
-        # run process 
-        Start-Process -FilePath "ssh" -ArgumentList "--help" -WindowStyle Hidden 
-    }
-    catch {
-        throw "ssh executable not found"
-    }
-    try {
-        # run process 
-        Start-Process -FilePath "ssh-keygen" -ArgumentList "--help" -WindowStyle Hidden 
-    }
-    catch {
-        throw "ssh-keygen executable not found"
-    }
-}
+function Test-Dir {
+    param(
+        [String]$DirName
+    )
 
-function Verify-TmpDir {
     try {
-        Test-Path $PSScriptRoot/tmp | Out-Null
+        Test-Path $DirName | Out-Null
     }
     catch {
-        throw "Required directory $PSScriptRoot/tmp does not exist"
+        throw "Required directory $DirName does not exist"
     }    
 }
 
 # main()
 try {
-    
-    # Import the modules
-    Import-Module OCI.PSModules.Bastion
-    Import-Module OCI.PSModules.Mysql
-    Import-Module OCI.PSModules.Databasetools
-    Import-Module OCI.PSModules.Secrets
-
-    Verify-Mysqlsh
-    Verify-SshSuite
-    Verify-TmpDir
 
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
@@ -66,6 +55,17 @@ try {
     if ($null -eq $ConnectionId) {
         Throw "ConnectionId must be provided"
     }
+
+    # Import the modules
+    Import-Module OCI.PSModules.Bastion
+    Import-Module OCI.PSModules.Mysql
+    Import-Module OCI.PSModules.Databasetools
+    Import-Module OCI.PSModules.Secrets
+
+    Test-Executable -ExeName "mysqlsh"      -ExeArguments "--help"
+    Test-Executable -ExeName "ssh"          -ExeArguments "--help"
+    Test-Executable -ExeName "ssh-keygen"-ExeArguments "--help"
+    Test-Dir -DirName "$PSScriptRoot/tmp"
 
     $Connection = Get-OCIDatabasetoolsConnection -DatabaseToolsConnectionId $ConnectionId
 
@@ -91,15 +91,15 @@ try {
 
     # Move into dir and execute there ...
     Push-Location
-    cd $PSScriptRoot
-    $BastionSession=.\Create_Bastion_SSH_Port_Forwarding_Session.ps1 -BastionId $BastionId -TargetHost $TargetHost -PublicKeyFile (-join($KeyFile, ".pub")) -Port $Port
+    Set-Location $PSScriptRoot
+    $BastionSession=./Create_Bastion_SSH_Port_Forwarding_Session.ps1 -BastionId $BastionId -TargetHost $TargetHost -PublicKeyFile (-join($KeyFile, ".pub")) -Port $Port
     Pop-Location
 
     # Create ssh command argument string with relevant parameters
     $SshArgs = $BastionSession.SshMetadata["command"]
-    $SshArgs = $SshArgs.replace("ssh", "") 
+    $SshArgs = $SshArgs.replace("ssh",          "") 
     $SshArgs = $SshArgs.replace("<privateKey>", $KeyFile)
-    $SshArgs = $sshArgs.replace("<localPort>", $LocalPort)
+    $SshArgs = $sshArgs.replace("<localPort>",  $LocalPort)
 
     # for debug, comment out for now
     # Out-Host -InputObject "CONN : ssh $sshArgs"
@@ -118,8 +118,8 @@ finally {
 
     # Delete ephemeral key pair if all went well
     if ($true -eq $DeleteKeyOnExit) {
-        del $KeyFile
-        del (-join($KeyFile, ".pub"))    
+        Remove-Item $KeyFile
+        Remove-item (-join($KeyFile, ".pub"))    
     } 
     
     # Kill Bastion session, with Force, ignore output (it is the work request id)
