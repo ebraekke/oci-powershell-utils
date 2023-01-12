@@ -1,11 +1,14 @@
 <#
-This example demonstrates how to connect securely to a MySQL DB System endpoint using
-a bastion session and a connection
+This example demonstrates how to connect securely to an SSH host inside a VCN
+a bastion (session) and an (accepted) ssh private key 
 #>
 
 param(
     [String]$BastionId, 
-    [String]$ConnectionId
+    [String]$TargetHost,
+    [String]$SshKey,
+    [Int32]$Port=22,
+    [String]$OsUser="opc"
 )
 
 $UserErrorActionPreference = $ErrorActionPreference
@@ -36,41 +39,39 @@ function Test-Executable {
 # main()
 try {
 
-    # Check parameters 
+    # Check parameters
     if ($null -eq $BastionId) {
         Throw "BastionId must be provided"
     }
-    if ($null -eq $ConnectionId) {
-        Throw "ConnectionId must be provided"
+    if ($null -eq $TargetHost) {
+        Throw "TargetHost ip must be provided"
+    }
+    if ($null -eq $SshKey) {
+        Throw "SshKey must be provided"
+    } elseif ($False -eq (Test-Path $SshKey -PathType Leaf)) {
+        Throw "$SshKey is not a file"        
     }
     if ($False -eq (Test-Path $PSScriptRoot/tmp)) {
         Throw "Directory $PSScriptRoot/tmp does not exist"        
     }
-
+    
+    # use ssh-keygen to print public part of key
+    # ssh-keygen does not like "~", so convert to "$HOME"
+    ssh-keygen -y -e -f ($sshKey.Replace("~", $HOME)) | Out-Null
+    if ($False -eq $?) {
+        throw "$SshKey is not a valid private ssh key"
+    }
+    
     # Check dependencies
-    Test-Executable -ExeName "mysqlsh"      -ExeArguments "--help"
     Test-Executable -ExeName "ssh"          -ExeArguments "--help"
     Test-Executable -ExeName "ssh-keygen"   -ExeArguments "--help"
-    
+
     # Import the modules
     Import-Module OCI.PSModules.Bastion
-    Import-Module OCI.PSModules.Mysql
-    Import-Module OCI.PSModules.Databasetools
-    Import-Module OCI.PSModules.Secrets
 
-    $Connection = Get-OCIDatabasetoolsConnection -DatabaseToolsConnectionId $ConnectionId
+    # Range 2223 to 2299
+    $LocalPort = Get-Random -Minimum 2223 -Maximum 2299
 
-    $MysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $Connection.RelatedResource.Identifier
-    $Secret = Get-OCISecretsSecretBundle -SecretId $Connection.UserPassword.SecretId
- 
-    # Assign to local variables for readability
-    $UserName = $Connection.UserName
-    $PasswordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
-    $TargetHost = $MysqlDbSystem.IpAddress
-    $Port = $MysqlDbSystem.Port
-    # Range 3307 to 3399
-    $LocalPort = Get-Random -Minimum 3307 -Maximum 3399
- 
     # Generate ephemeral key pair in ./tmp dir.  
     # name: bastionkey-yyyy_dd_MM_HH_mm_ss-$LocalPort
     #
@@ -96,8 +97,8 @@ try {
     # Out-Host -InputObject "CONN : ssh $sshArgs"
     $SshProcess = Start-Process -FilePath "ssh" -ArgumentList $SshArgs -WindowStyle Hidden -PassThru
 
-    $Password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($PasswordBase64))
-    mysqlsh -u $UserName -h 127.0.0.1 --port=$LocalPort --password=$Password
+    # -o "NoHostAuthenticationForLocalhost yes" ensures no verification of locally forwarded port and localhost combos 
+    ssh -o "NoHostAuthenticationForLocalhost yes" -p $LocalPort 127.0.0.1 -l $OsUser -i $SshKey 
 }
 finally {
 

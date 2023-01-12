@@ -25,6 +25,8 @@ try {
     }
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
+    } elseif ($False -eq (Test-Path $PublicKeyFile -PathType Leaf)) {
+        Throw "$PublicKeyFile is not a valid file"        
     }
     
     Out-Host -InputObject "Creating Port Forwarding Session"
