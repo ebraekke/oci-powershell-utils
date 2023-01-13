@@ -1,3 +1,10 @@
+# How to 
+
+Import-Module .\oci-powershell-utils.psm1
+Remove-Module oci-powershell-utils
+
+Get-Help cmdlet
+
 # ebraekke/oci-powershell-utils
 
 PowerShell scripts that utilize the the PowerShell API for OCI.
