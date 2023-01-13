@@ -51,20 +51,20 @@ try {
     } elseif ($False -eq (Test-Path $SshKey -PathType Leaf)) {
         Throw "$SshKey is not a file"        
     }
-    if ($False -eq (Test-Path $PSScriptRoot/tmp)) {
+    if ($false -eq (Test-Path $PSScriptRoot/tmp)) {
         Throw "Directory $PSScriptRoot/tmp does not exist"        
     }
-    
-    # use ssh-keygen to print public part of key
-    # ssh-keygen does not like "~", so convert to "$HOME"
-    ssh-keygen -y -e -f ($sshKey.Replace("~", $HOME)) | Out-Null
-    if ($False -eq $?) {
-        throw "$SshKey is not a valid private ssh key"
-    }
-    
+        
     # Check dependencies
     Test-Executable -ExeName "ssh"          -ExeArguments "--help"
     Test-Executable -ExeName "ssh-keygen"   -ExeArguments "--help"
+
+    # use ssh-keygen to print public part of key
+    # ssh-keygen on Windows does not like "~", so convert to "$HOME"
+    ssh-keygen -y -e -f ($sshKey.Replace("~", $HOME)) | Out-Null
+    if ($false -eq $?) {
+        throw "$SshKey is not a valid private ssh key"
+    }
 
     # Import the modules
     Import-Module OCI.PSModules.Bastion

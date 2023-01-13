@@ -25,7 +25,7 @@ try {
     }
     if ($null -eq $PublicKeyFile) {
         Throw "PublicKeyFile must be provided"
-    } elseif ($False -eq (Test-Path $PublicKeyFile -PathType Leaf)) {
+    } elseif ($false -eq (Test-Path $PublicKeyFile -PathType Leaf)) {
         Throw "$PublicKeyFile is not a valid file"        
     }
     
