@@ -148,12 +148,12 @@ DisplayName              : BastionSession-405066102
 BastionId                : ocid1.bastion.oc1.eu-frankfurt-1.SCRAMBLED
 BastionName              : BastionFraTest
 BastionUserName          : ocid1.bastionsession.oc1.eu-frankfurt-1.amaaaaaa3gkdkiaad3vwrwp2e573xnifznjv6v6oyf43echdqtwbry4m4oea
-TargetResourceDetails    : Oci.BastionService.Models.PortForwardingSessionTargetResourceDetails
+TargetResourceDetails    : Oci.bastionService.Models.PortForwardingSessionTargetResourceDetails
 SshMetadata              : {[command, ssh -i <privateKey> -N -L <localPort>:10.0.0.251:22 -p 22 ocid1.bastionsession.oc1.eu-frankfur
                            t-1.amaaaaaa3gkdkiaad3vwrwp2e573xnifznjv6v6oyf43echdqtwbry4m4oea@host.bastion.eu-frankfurt-1.oci.oraclecl
                            oud.com]}
 KeyType                  : Pub
-KeyDetails               : Oci.BastionService.Models.PublicKeyDetails
+KeyDetails               : Oci.bastionService.Models.PublicKeyDetails
 BastionPublicHostKeyInfo :
 TimeCreated              : 13.01.2023 13:41:24
 TimeUpdated              : 13.01.2023 13:41:31
@@ -172,12 +172,12 @@ DisplayName              : BastionSession-1367382904
 BastionId                : ocid1.bastion.oc1.eu-frankfurt-1.SCRAMBLED
 BastionName              : BastionFraTest
 BastionUserName          : ocid1.bastionsession.oc1.eu-frankfurt-1.amaaaaaa3gkdkiaa7um7otneje5x6qfsjtsljeq2lhofkvyacdceytlmlnda
-TargetResourceDetails    : Oci.BastionService.Models.PortForwardingSessionTargetResourceDetails
+TargetResourceDetails    : Oci.bastionService.Models.PortForwardingSessionTargetResourceDetails
 SshMetadata              : {[command, ssh -i <privateKey> -N -L <localPort>:10.0.0.251:3306 -p 22 ocid1.bastionsession.oc1.eu-frankf
                            urt-1.amaaaaaa3gkdkiaa7um7otneje5x6qfsjtsljeq2lhofkvyacdceytlmlnda@host.bastion.eu-frankfurt-1.oci.oracle
                            cloud.com]}
 KeyType                  : Pub
-KeyDetails               : Oci.BastionService.Models.PublicKeyDetails
+KeyDetails               : Oci.bastionService.Models.PublicKeyDetails
 BastionPublicHostKeyInfo :
 TimeCreated              : 13.01.2023 14:09:00
 TimeUpdated              : 13.01.2023 14:09:03
@@ -195,10 +195,7 @@ function New-OpuPortForwardingSession {
         [String]$PublicKeyFile,
         [Int32]$Port=22
     )
-
-    ## TODO: Clean up internal variable names from PascalCase to camelCase
-
-    $UserErrorActionPreference = $ErrorActionPreference
+    $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
 
     try {
@@ -215,36 +212,33 @@ function New-OpuPortForwardingSession {
         Write-Output "Using port: $Port"
 
         ## Get Bastion object, use MaxSessionTtlInSeconds
-        $BastionService         = Get-OCIBastion -BastionId $BastionId
-        $MaxSessionTtlInSeconds = $BastionService.MaxSessionTtlInSeconds
+        $bastionService         = Get-OCIBastion -BastionId $BastionId
+        $maxSessionTtlInSeconds = $bastionService.MaxSessionTtlInSeconds
 
         ## Details of target
-        $TargetResourceDetails                                  = New-Object -TypeName 'Oci.BastionService.Models.CreatePortForwardingSessionTargetResourceDetails'
-        $TargetResourceDetails.TargetResourcePrivateIpAddress   = $TargetHost    
-
-        ## Generic for both models
-        $TargetResourceDetails.TargetResourcePort               = $Port
+        $targetResourceDetails                                  = New-Object -TypeName 'Oci.bastionService.Models.CreatePortForwardingSessionTargetResourceDetails'
+        $targetResourceDetails.TargetResourcePrivateIpAddress   = $TargetHost    
+        $targetResourceDetails.TargetResourcePort               = $Port
 
         ## Details of keyfile
-        $KeyDetails                  = New-Object -TypeName 'Oci.BastionService.Models.PublicKeyDetails'
-        $K                           = Get-Content $PublicKeyFile
-        $KeyDetails.PublicKeyContent = $K
+        $keyDetails                  = New-Object -TypeName 'Oci.bastionService.Models.PublicKeyDetails'
+        $keyDetails.PublicKeyContent = Get-Content $PublicKeyFile
 
         ## The actual session
-        $SessionDetails                       = New-Object -TypeName 'Oci.BastionService.Models.CreateSessionDetails'
-        $SessionDetails.DisplayName           = -join("BastionSession-", (Get-Random))
-        $SessionDetails.SessionTtlInSeconds   = $MaxSessionTtlInSeconds
-        $SessionDetails.BastionId             = $BastionId
-        $SessionDetails.KeyType               = "PUB"
-        $SessionDetails.TargetResourceDetails = $TargetResourceDetails
-        $SessionDetails.KeyDetails            = $KeyDetails
+        $sessionDetails                       = New-Object -TypeName 'Oci.bastionService.Models.CreateSessionDetails'
+        $sessionDetails.DisplayName           = -join("BastionSession-", (Get-Random))
+        $sessionDetails.SessionTtlInSeconds   = $maxSessionTtlInSeconds
+        $sessionDetails.BastionId             = $BastionId
+        $sessionDetails.KeyType               = "PUB"
+        $sessionDetails.TargetResourceDetails = $TargetResourceDetails
+        $sessionDetails.KeyDetails            = $keyDetails
     
-        $BastionSession = New-OciBastionSession -CreateSessionDetails $SessionDetails
+        $bastionSession = New-OciBastionSession -CreateSessionDetails $sessionDetails
     
         Write-Output "Waiting for creation of bastion session to complete"
-        $BastionSession = Get-OCIBastionSession -SessionId $BastionSession.Id -WaitForLifecycleState Active, Failed
+        $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active, Failed
     
-        $BastionSession
+        $bastionSession
     } catch {
         ## What else can we do? 
         Write-Error "Error: $_"
@@ -253,7 +247,7 @@ function New-OpuPortForwardingSession {
         $ErrorActionPreference = "Continue"
         
         ## Done, restore settings
-        $ErrorActionPreference = $UserErrorActionPreference
+        $ErrorActionPreference = $userErrorActionPreference
     }
 }
 
