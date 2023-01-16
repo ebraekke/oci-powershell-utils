@@ -123,6 +123,122 @@ function Test-OpuMysqlshAvailable {
 <#
 .SYNOPSIS
 Create a port forwarding sesssion with OCI Bastion service.
+Generate SSH key pair to be used for session.
+
+Return a session object to the caller that contains Bastion session, names of SSH files 
+as well as guidance on which local port to use (included in file and bastion session name)
+
+[PSCustomObject]@{
+    Session = $bastionSession
+    PrivateKey = $keyFile
+    PublicKey = "${keyFile}.pub"
+    LocalPort = $localPort
+}
+        
+.DESCRIPTION
+Creates a port forwarding session with the OCI Bastion Service.
+This session will allow you to "ssh" through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
+A path from the Bastion to the target is required.
+The Bastion session inherits TTL from the Bastion (instance). 
+
+.PARAMETER BastionId
+OCID of Bastion with wich to create a session. 
+ 
+.PARAMETER TargetHost
+IP address of target host. 
+   
+.PARAMETER TargetPort
+Port number at TargetHost to create a session to. 
+Defaults to 22.  
+
+.EXAMPLE 
+## Creating a forwarding session to the default port
+
+
+.EXAMPLE 
+## Creating a forwarding session to a mysql port
+#>
+function New-OpuPortForwardingSessionX {
+    param (
+        [Parameter(Mandatory,HelpMessage='OCID of bastion')]
+        [String]$BastionId, 
+        [Parameter(Mandatory,HelpMessage='IP address of target host')]
+        [String]$TargetHost,
+        [Int32]$TargetPort=22        
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+
+        Import-Module OCI.PSModules.Bastion
+
+        $tmpDir = Get-TempDir
+
+        $now = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
+        $localPort = Get-Random -Minimum 9001 -Maximum 9999
+
+        ## Generate ephemeral key pair in $tmpDir.  
+        ## name: bastionkey-${now}.{localPort}
+        ##
+        ## Process will fail if another key with same name exists, in that case -- TODO: decide what to do
+        $keyFile = -join("${tmpDir}/bastionkey-","${now}-${localPort}")
+        ssh-keygen -t rsa -b 2048 -f $keyFile -q -N ''
+    
+        Out-Host -InputObject "Creating Port Forwarding Session to ${TargetHost}:${TargetPort}"
+
+        ## Get Bastion object, use MaxSessionTtlInSeconds
+        $bastionService         = Get-OCIBastion -BastionId $BastionId
+        $maxSessionTtlInSeconds = $bastionService.MaxSessionTtlInSeconds
+
+        ## Details of target
+        $targetResourceDetails                                  = New-Object -TypeName 'Oci.bastionService.Models.CreatePortForwardingSessionTargetResourceDetails'
+        $targetResourceDetails.TargetResourcePrivateIpAddress   = $TargetHost    
+        $targetResourceDetails.TargetResourcePort               = $TargetPort
+
+        ## Details of keyfile
+        $keyDetails                  = New-Object -TypeName 'Oci.bastionService.Models.PublicKeyDetails'
+        $keyDetails.PublicKeyContent = Get-Content "${keyFile}.pub"
+
+        ## The actual session, name matches ephemeral key(s)
+        $sessionDetails                       = New-Object -TypeName 'Oci.bastionService.Models.CreateSessionDetails'
+        $sessionDetails.DisplayName           = -join("BastionSession-${now}-${localPort}")
+        $sessionDetails.SessionTtlInSeconds   = $maxSessionTtlInSeconds
+        $sessionDetails.BastionId             = $BastionId
+        $sessionDetails.KeyType               = "PUB"
+        $sessionDetails.TargetResourceDetails = $TargetResourceDetails
+        $sessionDetails.KeyDetails            = $keyDetails
+    
+        $bastionSession = New-OciBastionSession -CreateSessionDetails $sessionDetails
+    
+        Out-Host -InputObject "Waiting for creation of bastion session to complete"
+        $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active, Failed
+
+        ## Return bastion session, pointers to key(s) and guidance abt local port to use
+        $localBastionSession = [PSCustomObject]@{
+            Session = $bastionSession
+            PrivateKey = $keyFile
+            PublicKey = "${keyFile}.pub"
+            LocalPort = $localPort
+        }
+        
+        $localBastionSession
+    } catch {
+        ## What else can we do? 
+        Write-Error "Error: $_"
+        return $false
+    } finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+        
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
+<#
+.SYNOPSIS
+Create a port forwarding sesssion with OCI Bastion service.
 Return the session object to the caller. 
 
 .DESCRIPTION
@@ -391,8 +507,89 @@ function New-OpuSshSessionByKey {
         if ($true -eq $deleteKeyOnExit) {
             Remove-Item $keyFile
             Remove-item (-join($keyFile, ".pub"))    
-        } 
+        }
     
+        # Kill Bastion session, with Force, ignore output (it is the work request id)
+        Remove-OCIBastionSession -SessionId $BastionSession.id -Force | Out-Null
+
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
+
+## DOC here
+function Invoke-OpuSshSessionWithKey {
+    param (
+        [Parameter(Mandatory,HelpMessage='OCID of bastion')]
+        [String]$BastionId, 
+        [Parameter(Mandatory,HelpMessage='IP address of target host')]
+        [String]$TargetHost,
+        [Parameter(Mandatory,HelpMessage='Private SSH Key file for auth')]
+        [String]$SshKey,
+        [Int32]$TargetPort=22,
+        [String]$OsUser="opc"
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+        ## Make sure mandatory input at least is a proper file  
+        if ($false -eq (Test-Path $SshKey -PathType Leaf)) {
+            throw "${SshKey} is not a valid file"        
+        }
+
+        if ($false -eq (Test-OpuSshAvailable)) {
+            throw "SSH not properly installed"
+        }
+
+        # use ssh-keygen to print public part of key
+        # ssh-keygen on Windows does not like "~", so convert to "$HOME"
+        ssh-keygen -y -f ($sshKey.Replace("~", $HOME)) | Out-Null
+        if ($false -eq $?) {
+            throw "$SshKey is not a valid private ssh key"
+        }
+
+        ## Create session, get information in custom object
+        $bastionSessionDescription = New-OpuPortForwardingSessionX -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
+
+        $BastionSession = $bastionSessionDescription.Session
+
+        ## TODO: Fix here
+        ## Create ssh command argument string with relevant parameters
+        $sshArgs = $bastionSession.Metadata["command"]
+        $sshArgs = $sshArgs.replace("ssh",          "") 
+        $sshArgs = $sshArgs.replace("<privateKey>", $keyFile)
+        $sshArgs = $sshArgs.replace("<localPort>",  $localPort)
+
+        Write-Debug "CONN: ssh ${sshArgs}"
+        $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru
+     
+        ## -o "NoHostAuthenticationForLocalhost yes" ensures no verification of locally forwarded port and localhost combos 
+        ssh -o "NoHostAuthenticationForLocalhost yes" -p $localPort 127.0.0.1 -l $OsUser -i $sshKey 
+
+    }
+    catch {
+        ## What else can we do? 
+        Write-Error "Error: $_"
+        return $false
+    }
+    finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+        
+        # Kill SSH process
+        Stop-Process -InputObject $sshProcess
+
+        ## Delete ephemeral key pair if all went well
+        if ($true -eq $deleteKeyOnExit) {
+            Remove-Item $keyFile
+            Remove-item (-join($keyFile, ".pub"))    
+        }
+    
+        # Kill Bastion session, with Force, ignore output (it is the work request id)
+        Remove-OCIBastionSession -SessionId $BastionSession.id -Force | Out-Null
+
         ## Done, restore settings
         $ErrorActionPreference = $userErrorActionPreference
     }
@@ -482,12 +679,6 @@ function New-OpuSshSessionBySecret {
             Throw "SSH Key in secret is not valid"
         }
 
-
-<#
-        Out-Host -InputObject "Sleep for 30secs whil we verify files ..."
-        Start-Sleep -Seconds 30
-#>
-
         New-OpuSshSessionByKey -BastionId $BastionId -TargetHost $TargetHost -SshKey $sshKeyCopy -Port $Port -OsUser $OsUser
         
     }
@@ -517,3 +708,6 @@ Export-ModuleMember -Function Test-OpuMysqlshAvailable
 Export-ModuleMember -Function New-OpuPortForwardingSession
 Export-ModuleMember -Function New-OpuSshSessionByKey
 Export-ModuleMember -Function New-OpuSshSessionBySecret
+
+Export-ModuleMember -Function New-OpuPortForwardingSessionX
+Export-ModuleMember -Function Invoke-OpuSshSessionWithKey
