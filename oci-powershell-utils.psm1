@@ -4,7 +4,7 @@
 Internal functions
 #>
 
-function local:Get-TempDir {
+function Get-TempDir {
     ## Windows only for now() 
     if ($IsWindows) {
         return $env:TEMP
@@ -13,7 +13,7 @@ function local:Get-TempDir {
     }
 }
 
-function local:Test-Executable {
+function Test-Executable {
     param(
         ## Name of executable to test
         [String]$ExeName, 
@@ -76,7 +76,7 @@ Test-OpuSshAvailability
 Write-Error: ssh-keygen not found
 False
 #>
-function local:Test-OpuSshAvailable {
+function Test-OpuSshAvailable {
     try {
         Test-Executable -ExeName "ssh" -ExeArguments "--help"
         Test-Executable -ExeName "ssh-keygen" -ExeArguments "--help"
@@ -109,7 +109,7 @@ Test-OpuSshAvailability
 Write-Error: mysqlsh not found
 False
 #>
-function local:Test-OpuMysqlshAvailable {
+function Test-OpuMysqlshAvailable {
     try {
         Test-Executable -ExeName "mysqlsh" -ExeArguments "--help"
 
@@ -194,7 +194,7 @@ LifecycleState           : Active
 LifecycleDetails         :
 SessionTtlInSeconds      : 10800  
 #>
-function local:New-OpuPortForwardingSession {
+function New-OpuPortForwardingSession {
     param (
         [Parameter(Mandatory,HelpMessage='OCID of bastion')]
         [String]$BastionId, 
@@ -313,7 +313,7 @@ New-OpuSshSession: Error: C:\Users\espenbr\.ssh\id_rsaX is not a valid file
 New-OpuSshSession -BastionId $bastion_ocid -TargetHost $target_ip -SshKey C:\Users\espenbr\tmp\id_rsa_fagdag.tull 
 New-OpuSshSession: Error: C:\Users\espenbr\tmp\id_rsa_fagdag.tull is not a valid private ssh key
 #>
-function local:New-OpuSshSessionByKey {
+function New-OpuSshSessionByKey {
     param (
         [Parameter(Mandatory,HelpMessage='OCID of bastion')]
         [String]$BastionId, 
@@ -438,13 +438,13 @@ Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-1026-oracle x86_64)
 
 Last login: Fri Jan 13 17:00:28 2023 from 10.0.0.49
 #>
-function local:New-OpuSshSessionBySecret {
+function New-OpuSshSessionBySecret {
     param (
         [Parameter(Mandatory,HelpMessage='OCID of bastion')]
         [String]$BastionId, 
         [Parameter(Mandatory,HelpMessage='IP address of target host')]
         [String]$TargetHost,
-        [Parameter(Mandatory,HelpMessage='OCID of secret conatinhg SSH Key file for auth')]
+        [Parameter(Mandatory,HelpMessage='OCID of secret containing SSH Key file for auth')]
         [String]$SecretId,
         [Int32]$Port=22,
         [String]$OsUser="opc"
@@ -471,27 +471,24 @@ function local:New-OpuSshSessionBySecret {
         ##
         ## Process will fail if another key with same name exists, in that case -- do not delete key file(s) on exit
         $deleteKeyOnExit = $false
-        $sshKey = -join("${tmpDir}/secretkey-",(Get-Date -Format "yyyy_MM_dd_HH_mm_ss"),"-${random}")
-        New-Item -ItemType "file" -Path $sshKey -Value $secret | Out-Null
+        $sshKeyCopy = -join("${tmpDir}/secretkey-",(Get-Date -Format "yyyy_MM_dd_HH_mm_ss"),"-${random}")
+        New-Item -ItemType "file" -Path $sshKeyCopy -Value $secret | Out-Null
         $deleteKeyOnExit = $true
         
         ## use ssh-keygen to creat public part of key
         ## Will not use, but fail here means something is wrong
-        ssh-keygen -y -f $sshKey > "$sshKey.pub" | Out-Null
+        ssh-keygen -y -f $sshKeyCopy > "${sshKeyCopy}.pub" | Out-Null
         if ($false -eq $?) {
             Throw "SSH Key in secret is not valid"
         }
 
-        ## Now that we have a proper key stored locally we can connect using the standard procedure
-        $lBastionId = $BastionId
-        $lPort = $Port
-        $lTargetHost = $TargetHost
-        $lOsUser = $OsUser
 
-        Out-Host -InputObject "Sleep for 30secs whil we fix scoping"
+<#
+        Out-Host -InputObject "Sleep for 30secs whil we verify files ..."
         Start-Sleep -Seconds 30
-        
-        ## New-OpuSshSessionByKey -BastionId $lBastionId -TargetHost $lTargetHost -SshKey $sshKey -Port $lPort -OsUser $lOsUser
+#>
+
+        New-OpuSshSessionByKey -BastionId $BastionId -TargetHost $TargetHost -SshKey $sshKeyCopy -Port $Port -OsUser $OsUser
         
     }
     catch {
@@ -502,13 +499,13 @@ function local:New-OpuSshSessionBySecret {
     finally {
         ## To Maximize possible clean ups, continue on error 
         $ErrorActionPreference = "Continue"
-        
+
         ## Delete ephemeral key pair if all went well
         if ($true -eq $deleteKeyOnExit) {
-            Remove-Item $sshKey
-            Remove-item (-join($sshKey, ".pub"))    
+            Remove-Item $sshKeyCopy
+            Remove-item (-join($sshKeyCopy, ".pub"))    
         } 
- 
+
         ## Done, restore settings
         $ErrorActionPreference = $userErrorActionPreference
     }
