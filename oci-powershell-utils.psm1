@@ -191,7 +191,7 @@ ocid1.bastionworkrequest.oc1.eu-frankfurt-1.amaaaaaa3gkdkiaauz4sperzwv32kjdun4cy
 #>
 function New-OpuPortForwardingSessionFull {
     param (
-        [Parameter(Mandatory,HelpMessage='OCID of bastion')]
+        [Parameter(Mandatory,HelpMessage='OCID of Bastion')]
         [String]$BastionId, 
         [Parameter(Mandatory,HelpMessage='IP address of target host')]
         [String]$TargetHost,

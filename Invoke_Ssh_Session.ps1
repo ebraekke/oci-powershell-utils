@@ -1,16 +1,43 @@
 <#
-This example demonstrates how to connect securely to an SSH host inside a VCN
-a bastion (session) and an (accepted) ssh private key 
+.SYNOPSIS
+Invoke  an SSH  sesssion with a target host accessible through the OCI Bastion service.
+
+.DESCRIPTION
+Using the Bastion service and tunneling a SSH session will be invoked on the target host. 
+A ephemeral key pair for the Bastion session is created (and later destroyed). 
+Since the script relies on port forwarding, the bastion agent is not a requirment on the target.  
+This combo will allow you to "ssh" through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
+A path from the Bastion to the target is required.
+The Bastion session inherits TTL from the Bastion (instance). 
+
+
+.PARAMETER BastionId
+OCID of Bastion with wich to create a session. 
+ 
+.PARAMETER TargetHost
+IP address of target host. 
+   
+.PARAMETER TargetPort
+Port number at TargetHost to create a session to. 
+Defaults to 22.  
+
+.EXAMPLE 
+## Creating a SSH session to the default port with a non-default user (not 10.0.0.49 i BAstion service private ip)
+.\Invoke_Ssh_Session.ps1 -BastionId $bastion_ocid -TargetHost $target_ip -SshKey ~/.ssh/id_rsa -OsUser ubuntu
+Creating Port Forwarding Session to 10.0.0.251:22
+Waiting for creation of bastion session to complete
+...
+Last login: Tue Jan 17 15:11:50 2023 from 10.0.0.49
 #>
 
 param(
-    [Parameter(Mandatory, HelpMessage='OCID Bastion')]
+    [Parameter(Mandatory, HelpMessage='OCID Bastion of Bastion')]
     [String]$BastionId, 
     [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,
     [Parameter(Mandatory, HelpMessage='SSH Key file for auth')]
     [String]$SshKey,
-    [Parameter(HelpMessage='Port at Traget host')]
+    [Parameter(HelpMessage='Port at Target host')]
     [Int32]$TargetPort=22,
     [Parameter(HelpMessage='User to connect at target (opc)')]
     [String]$OsUser="opc"
@@ -43,7 +70,7 @@ try {
         throw "$SshKey is not a valid private ssh key"
     }
 
-    ## Create session and proces, get information in custom object -- see comment above
+    ## Create session and process, get information in custom object -- see below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
 
     ## Extract all elements into local variables
