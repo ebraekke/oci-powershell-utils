@@ -97,8 +97,9 @@ try {
     # Out-Host -InputObject "CONN : ssh $sshArgs"
     $SshProcess = Start-Process -FilePath "ssh" -ArgumentList $SshArgs -WindowStyle Hidden -PassThru
 
-    # -o "NoHostAuthenticationForLocalhost yes" ensures no verification of locally forwarded port and localhost combos 
-    ssh -o "NoHostAuthenticationForLocalhost yes" -p $LocalPort 127.0.0.1 -l $OsUser -i $SshKey 
+    ## -o "NoHostAuthenticationForLocalhost yes" ensures no verification of locally forwarded port and localhost combos 
+    ## NOTE: use 'localhost' and not '127.0.0.1' as thsi is required both with putty and with ssh 
+    ssh -o "NoHostAuthenticationForLocalhost yes" -p $LocalPort localhost -l $OsUser -i $SshKey 
 }
 finally {
 

@@ -4,56 +4,38 @@ a bastion (session) and an (accepted) ssh private key
 #>
 
 param(
+    [Parameter(Mandatory, HelpMessage='OCID Bastion')]
     [String]$BastionId, 
+    [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,
+    [Parameter(Mandatory, HelpMessage='SSH Key file for auth')]
     [String]$SshKey,
+    [Parameter(HelpMessage='Port at Traget host')]
     [Int32]$TargetPort=22,
+    [Parameter(HelpMessage='User to connect at target (opc)')]
     [String]$OsUser="opc"
 )
 
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 
-## TODO: fix and expand
-## $moduleDebug = $env:OPU_DEBUG
-$moduleDebug = $false
-
-if ($true -eq $moduleDebug) {
-    Out-Host -InputObject "Based on 'env:OPU_DEBUG'"
-    Out-Host -InputObject "Debug is on "
-}
-
 Import-Module OCI.PSModules.Bastion
-## Move into dir and load from there ...
-Push-Location
+
 Set-Location $PSScriptRoot
 Import-Module './oci-powershell-utils.psm1'
 Pop-Location
 
-
 try {
-    ## Check parameters, prefer here rather than in param definition -- at least for now()
-    if ($null -eq $BastionId) {
-        throw "BastionId must be provided"
+    ## check that mandatory sw is installed    
+    if ($false -eq (Test-OpuSshAvailable)) {
+        throw "SSH not properly installed"
     }
-    if ($null -eq $TargetHost) {
-        throw "TargetHost ip must be provided"
-    }
-    if ($null -eq $SshKey) {
-        throw "SshKey must be provided"
-    } 
-    
     
     ## Make sure mandatory input at least is a proper file  
     if ($false -eq (Test-Path $SshKey -PathType Leaf)) {
         throw "${SshKey} is not a valid file"        
     }
     
-    ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
-
     ## use ssh-keygen to print public part of key
     ## ssh-keygen on Windows does not like "~", so convert to "$HOME"
     ssh-keygen -y -f ($sshKey.Replace("~", $HOME)) | Out-Null
@@ -61,35 +43,21 @@ try {
         throw "$SshKey is not a valid private ssh key"
     }
 
-    ##
-    ## $localBastionSession = [PSCustomObject]@{
-    ##    BastionSession = $bastionSession
-    ##    SShProcess = $sshProcess
-    ##    PrivateKey = $keyFile
-    ##    PublicKey = "${keyFile}.pub"
-    ##    LocalPort = $localPort
-    ##
     ## Create session and proces, get information in custom object -- see comment above
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
 
-    # Extract all elements into local variables
+    ## Extract all elements into local variables
     $bastionSession = $bastionSessionDescription.Bastionsession
     $sshProcessBastion = $bastionSessionDescription.SShProcess
     $privateKeyBastion = $bastionSessionDescription.PrivateKey
     $publicKeyBastion = $bastionSessionDescription.PublicKey
     $localPort = $bastionSessionDescription.LocalPort
- 
-    ## -o 'NoHostAuthenticationForLocalhost yes' ensures no verification of locally forwarded port and localhost combos 
-    ## $str = "ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort 127.0.0.1 -l $OsUser -i $sshKey" 
-
-    if ($true -eq $moduleDebug) {
-        Out-Host -InputObject  $str
-        $extraArgs = '-vvv'
-    } else {
-        $extraArgs =""
-    }
-    
-    ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort 127.0.0.1 -l $OsUser -i $sshKey $extraArgs
+     
+    ## NOTE 1: 'localhost' and not '127.0.0.1'
+    ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
+    ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
+    ## Ensures no verification of locally forwarded port and localhost combos. 
+    ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
 }
 catch {
     ## What else can we do? 
@@ -100,8 +68,8 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    if (!($true -eq $moduleDebug)) {
-        # Kill SSH process
+    if ($true -eq $true) {
+        ## Kill SSH process
         Stop-Process -InputObject $sshProcessBastion
 
         ## Delete ephemeral key pair returned in session obj

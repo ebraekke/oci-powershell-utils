@@ -62,3 +62,27 @@ For more information about resolving this error, see https://docs.oracle.com/en-
 If you are unable to resolve this Bastion issue, please contact Oracle support and provide them this full error message.
 ```
 
+# Code for secret
+
+```
+        $tmpDir = Get-TempDir
+
+        Out-Host -InputObject "Getting Secret from Vault"
+        $secretBase64 = (Get-OCISecretsSecretBundle -SecretId $SecretId).SecretBundleContent.Content
+        $secret = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($secretBase64))
+
+        ## Create ephemeral key pair in $tmpDir.  
+        ## name: secretkey-yyyy_dd_MM_HH_mm_ss-$LocalPort
+        ##
+        ## Process will fail if another key with same name exists, in that case -- do not delete key file(s) on exit
+        $sshKeyCopy = -join("${tmpDir}/secretkey-",(Get-Date -Format "yyyy_MM_dd_HH_mm_ss"),"-${LocalPort}")
+        New-Item -ItemType "file" -Path $sshKeyCopy -Value $secret | Out-Null
+        
+        ## use ssh-keygen to creat public part of key
+        ## Will not use, but fail here means something is wrong
+        ssh-keygen -y -f $sshKeyCopy > "${sshKeyCopy}.pub" | Out-Null
+        if ($false -eq $?) {
+            Throw "SSH Key in secret is not valid"
+        }
+
+```
