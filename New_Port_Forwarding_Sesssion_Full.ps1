@@ -55,8 +55,6 @@ param(
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 
-Import-Module OCI.PSModules.Bastion
-
 Set-Location $PSScriptRoot
 Import-Module './oci-powershell-utils.psm1'
 Pop-Location
@@ -67,7 +65,7 @@ try {
         throw "SSH not properly installed"
     }
     
-    ## Create session and process, get information in custom object -- see below
+    ## Create session and process, get information in custom object -- return below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
 
     $bastionSessionDescription

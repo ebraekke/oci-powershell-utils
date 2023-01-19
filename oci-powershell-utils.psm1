@@ -138,10 +138,12 @@ function Remove-OpuPortForwardingSessionFull {
     $ErrorActionPreference = "Continue"
 
     try {
+        Import-Module OCI.PSModules.Bastion
 
         ## Kill SSH process
         Stop-Process -InputObject $BastionSessionDescription.SshProcess
     
+        ## TODO: make this parameter driven in case of debug needs
         ## Delete the ephemeral keys, don't output errors 
         $ErrorActionPreference = 'SilentlyContinue' 
         Remove-Item $BastionSessionDescription.PrivateKey
@@ -243,9 +245,7 @@ function New-OpuPortForwardingSessionFull {
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
 
-
     try {
-
         Import-Module OCI.PSModules.Bastion
 
         $tmpDir = Get-TempDir

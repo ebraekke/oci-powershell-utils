@@ -50,8 +50,6 @@ param(
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 
-Import-Module OCI.PSModules.Bastion
-
 Set-Location $PSScriptRoot
 Import-Module './oci-powershell-utils.psm1'
 Pop-Location
@@ -77,11 +75,7 @@ try {
     ## Create session and process, get information in custom object -- see below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
 
-    ## Extract all elements into local variables
-    $bastionSession = $bastionSessionDescription.Bastionsession
-    $sshProcessBastion = $bastionSessionDescription.SShProcess
-    $privateKeyBastion = $bastionSessionDescription.PrivateKey
-    $publicKeyBastion = $bastionSessionDescription.PublicKey
+    ## Extract needed elements into local variables
     $localPort = $bastionSessionDescription.LocalPort
      
     ## NOTE 1: 'localhost' and not '127.0.0.1'
@@ -99,19 +93,8 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    if ($true -eq $true) {
-        ## Kill SSH process
-        Stop-Process -InputObject $sshProcessBastion
-
-        ## Delete ephemeral key pair returned in session obj
-        if ($true -eq $true) {
-            Remove-Item $privateKeyBastion
-            Remove-item $publicKeyBastion    
-        }
-
-        # Kill Bastion session, with Force, ignore output (it is the work request id)
-        Remove-OCIBastionSession -SessionId $bastionSession.id -Force | Out-Null
-    }
+    ## Request cleanup 
+    Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
 
     ## Finally, unload meodule from memory 
     Set-Location $PSScriptRoot
