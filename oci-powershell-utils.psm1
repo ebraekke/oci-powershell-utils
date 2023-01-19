@@ -116,6 +116,23 @@ function Test-OpuMysqlshAvailable {
 }
 
 <#
+function Remove-PortForwardingSession {
+    param (
+        [Parameter(Mandatory,HelpMessage='Custom object containg full session')]
+        $BastionSessionDescription 
+    )
+    
+
+    try {
+        
+    }
+    catch {
+        <#Do this if a terminating exception happens#>
+    }
+}
+#>
+
+<#
 .SYNOPSIS
 Create a port forwarding sesssion with OCI Bastion service.
 Generate SSH key pair to be used for session.
@@ -133,7 +150,7 @@ $localBastionSession = [PSCustomObject]@{
         
 .DESCRIPTION
 Creates a port forwarding session with the OCI Bastion Service and the required SSH port forwarding process.
-This combo will allow you to "ssh" through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
+This combo will allow you to connect through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
 A path from the Bastion to the target is required.
 The Bastion session inherits TTL from the Bastion (instance). 
 
