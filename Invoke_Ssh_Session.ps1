@@ -21,6 +21,10 @@ IP address of target host.
 Port number at TargetHost to create a session to. 
 Defaults to 22.  
 
+.PARAMETER OsUser
+Os user to connect with at target. 
+Defaults to opc. 
+
 .EXAMPLE 
 ## Creating a SSH session to the default port with a non-default user (not 10.0.0.49 i BAstion service private ip)
 .\Invoke_Ssh_Session.ps1 -BastionId $bastion_ocid -TargetHost $target_ip -SshKey ~/.ssh/id_rsa -OsUser ubuntu
@@ -108,6 +112,11 @@ finally {
         # Kill Bastion session, with Force, ignore output (it is the work request id)
         Remove-OCIBastionSession -SessionId $bastionSession.id -Force | Out-Null
     }
+
+    ## Finally, unload meodule from memory 
+    Set-Location $PSScriptRoot
+    Remove-Module oci-powershell-utils
+    Pop-Location
 
     ## Done, restore settings
     $ErrorActionPreference = $userErrorActionPreference

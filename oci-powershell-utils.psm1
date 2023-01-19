@@ -116,21 +116,47 @@ function Test-OpuMysqlshAvailable {
 }
 
 <#
-function Remove-PortForwardingSession {
+Input object:
+
+$BastionSessionDescription = [PSCustomObject]@{
+    BastionSession = $bastionSession
+    SShProcess = $sshProcess
+    PrivateKey = $keyFile
+    PublicKey = "${keyFile}.pub"
+    LocalPort = $localPort
+}
+
+#>
+function Remove-OpuPortForwardingSessionFull {
     param (
-        [Parameter(Mandatory,HelpMessage='Custom object containg full session')]
-        $BastionSessionDescription 
+        [Parameter(Mandatory,HelpMessage='Full Bastion Session Description Object')]
+        $BastionSessionDescription
     )
-    
+
+    ## To Maximize possible clean ups, continue on error
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
 
     try {
-        
+
+        ## Kill SSH process
+        Stop-Process -InputObject $BastionSessionDescription.SshProcess
+    
+        ## Delete the ephemeral keys, don't output errors 
+        $ErrorActionPreference = 'SilentlyContinue' 
+        Remove-Item $BastionSessionDescription.PrivateKey
+        Remove-Item $BastionSessionDescription.PublicKey 
+        $ErrorActionPreference = "Continue"
+
+        ## Kill Bastion session, with Force, ignore output (it is the work request id)
+        Remove-OCIBastionSession -SessionId $BastionSessionDescription.BastionSession.Id -Force | Out-Null
     }
-    catch {
-        <#Do this if a terminating exception happens#>
+
+    finally {
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
     }
 }
-#>
 
 <#
 .SYNOPSIS
@@ -140,7 +166,7 @@ Create the actual port forwarding SSH process.
 
 Return an object to the caller:
 
-$localBastionSession = [PSCustomObject]@{
+$bastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
     PrivateKey = $keyFile
@@ -298,4 +324,5 @@ function New-OpuPortForwardingSessionFull {
 
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
+Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
 Export-ModuleMember -Function New-OpuPortForwardingSessionFull
