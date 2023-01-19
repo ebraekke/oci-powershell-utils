@@ -25,6 +25,10 @@ Defaults to 22.
 Os user to connect with at target. 
 Defaults to opc. 
 
+.PARAMETER TestOnly
+Set to $true to perform setup and teardown, but skip the start of msqlsh.
+Incurs a 30 second wait. 
+
 .EXAMPLE 
 ## Creating a SSH session to the default port with a non-default user (not 10.0.0.49 i BAstion service private ip)
 .\Invoke_Ssh_Session.ps1 -BastionId $bastion_ocid -TargetHost $target_ip -SshKey ~/.ssh/id_rsa -OsUser ubuntu
@@ -35,7 +39,7 @@ Last login: Tue Jan 17 15:11:50 2023 from 10.0.0.49
 #>
 
 param(
-    [Parameter(Mandatory, HelpMessage='OCID Bastion of Bastion')]
+    [Parameter(Mandatory, HelpMessage='OCID of Bastion')]
     [String]$BastionId, 
     [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,
@@ -44,21 +48,26 @@ param(
     [Parameter(HelpMessage='Port at Target host')]
     [Int32]$TargetPort=22,
     [Parameter(HelpMessage='User to connect at target (opc)')]
-    [String]$OsUser="opc"
+    [String]$OsUser="opc",
+    [Boolean]$TestOnly=$false
 )
 
+## START: generic section
 $UserErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Stop" 
 
 Set-Location $PSScriptRoot
 Import-Module './oci-powershell-utils.psm1'
 Pop-Location
+## END: generic section
 
 try {
+    ## START: generic section
     ## check that mandatory sw is installed    
     if ($false -eq (Test-OpuSshAvailable)) {
         throw "SSH not properly installed"
     }
+    ## END: generic section
     
     ## Make sure mandatory input at least is a proper file  
     if ($false -eq (Test-Path $SshKey -PathType Leaf)) {
@@ -72,12 +81,18 @@ try {
         throw "$SshKey is not a valid private ssh key"
     }
 
+    ## START: generic section
     ## Create session and process, get information in custom object -- see below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
-
-    ## Extract needed elements into local variables
     $localPort = $bastionSessionDescription.LocalPort
-     
+    ## END: generic section
+    
+    if ($true -eq $TestOnly) {
+        Out-Host -InputObject "DEBUG: Waiting in 30 secs while you check stuff ..."
+        Start-Sleep -Seconds 30
+        return $true
+    }
+
     ## NOTE 1: 'localhost' and not '127.0.0.1'
     ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
     ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
@@ -90,6 +105,7 @@ catch {
     return $false
 }
 finally {
+    ## START: generic section
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
@@ -103,4 +119,5 @@ finally {
 
     ## Done, restore settings
     $ErrorActionPreference = $userErrorActionPreference
+    ## END: generic section
 }
