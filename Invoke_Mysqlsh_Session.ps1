@@ -47,7 +47,12 @@ try {
         throw "SSH not properly installed"
     }
     ## END: generic section
-    
+
+    ## Make sure mysqlsh is within reach first
+    if ($false -eq (Test-OpuMysqlshAvailable)) {
+        throw "Mysqlsh not properly installed"
+    }
+
     ## Import the modules needed here
     Import-Module OCI.PSModules.Mysql
     Import-Module OCI.PSModules.Databasetools
