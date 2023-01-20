@@ -53,6 +53,7 @@ try {
     Import-Module OCI.PSModules.Databasetools
     Import-Module OCI.PSModules.Secrets
 
+    Out-Host -InputObject "Getting details from connection"
     ## Grab main handle
     $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
 

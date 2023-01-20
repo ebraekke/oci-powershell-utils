@@ -257,6 +257,7 @@ function New-OpuPortForwardingSessionFull {
         ## name: bastionkey-${now}.{localPort}
         ##
         ## Process will fail if another key with same name exists, in that case -- TODO: decide what to do
+        Out-Host -InputObject "Creating ephemeral key pair"
         $keyFile = -join("${tmpDir}/bastionkey-","${now}-${localPort}")
         ssh-keygen -t rsa -b 2048 -f $keyFile -q -N ''
     
@@ -297,6 +298,7 @@ function New-OpuPortForwardingSessionFull {
 
         Write-Debug "CONN: ssh ${sshArgs}"
         
+        Out-Host -InputObject "Creating SSH tunnel"
         $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru
 
         ## Create return Object
