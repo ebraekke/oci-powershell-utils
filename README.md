@@ -65,3 +65,17 @@ The following software must be installed in your environment:
 
 PowerShell is cross-platform, so it should work.  
 But, for now I short-circuit and fail on purpose if you try to run on Mac or Linux. 
+
+## Why not managed SSH session? 
+
+I have decided to (only) use port forwarding for two reasons: 
+
+1. Simplicity: To create a session to a service endpoint, for instance a database listener, port forwarding is the only option. So I decided to keep it DRY (Don't Repeat Yourself). 
+
+2. Managed SSH sessions requires that an agent is activated on the target. This agent is not always present. In some instances the agent may not be available. This was the case initially with Ubuntu on ARM for example.  
+
+## Why PowerShell?
+
+PowerShell is an extremely powerful and forgiving environment for exploring an API.
+I especially appreciate the ability to inspect returned objects.
+This is the ultimate learning environment for me. 
