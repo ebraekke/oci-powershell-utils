@@ -49,8 +49,7 @@ $BastionSessionDescription = [PSCustomObject]@{
 }
 ```
 
-This object can be used for teardown. The teardown process is currently not implemented as a script. 
-It is accessible as the cmdlet `Remove-OpuPortForwardingSessionFull` inside the module `oci-powershell-utils.psm1`. 
+This object can be used for teardown. The destroy process is handled by `Remove_Port_Forwarding_Session_Full.ps1`.
 Pass the object returned by `New_Port_Forwarding_Sesssion_Full.ps1` as parameter `-BastionSessionDescription`. 
 
 ## Requirements 
