@@ -49,8 +49,7 @@ $BastionSessionDescription = [PSCustomObject]@{
 }
 ```
 
-This object can be used for teardown. The teardown process is currently not implemented as a script. 
-It is accessible as the cmdlet `Remove-OpuPortForwardingSessionFull` inside the module `oci-powershell-utils.psm1`. 
+This object can be used for teardown. The destroy process is handled by `Remove_Port_Forwarding_Session_Full.ps1`.
 Pass the object returned by `New_Port_Forwarding_Sesssion_Full.ps1` as parameter `-BastionSessionDescription`. 
 
 ## Requirements 
@@ -65,3 +64,17 @@ The following software must be installed in your environment:
 
 PowerShell is cross-platform, so it should work.  
 But, for now I short-circuit and fail on purpose if you try to run on Mac or Linux. 
+
+## Why not managed SSH session? 
+
+I have decided to (only) use port forwarding for two reasons: 
+
+1. Simplicity: To create a session to a service endpoint, for instance a database listener, port forwarding is the only option. So I decided to keep it DRY (Don't Repeat Yourself). 
+
+2. Managed SSH sessions requires that an agent is activated on the target. This agent is not always present. In some instances the agent may not be available. This was the case initially with Ubuntu on ARM for example.  
+
+## Why PowerShell?
+
+PowerShell is an extremely powerful and forgiving environment for exploring an API.
+I especially appreciate the ability to inspect returned objects.
+This is the ultimate learning environment for me. 
