@@ -107,13 +107,12 @@ try {
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
 
     if ($true -eq $TestOnly) {
-        Out-Host -InputObject "DEBUG: Waiting in 120 secs while you check stuff ..."
-        Start-Sleep -Seconds 120
+        Out-Host -InputObject "DEBUG: Waiting in 30 secs while you check stuff ..."
+        Start-Sleep -Seconds 30
         return $true
     }
   
     Out-Host -InputObject "Launching SQLcl"
-    # TODO: Resolve parameter passing issue wrt special characters
     sql -L ${userName}/${password}@tcps://127.0.0.1:${localPort}/${connStr}?ssl_server_dn_match=off
 }
 catch {
