@@ -92,7 +92,7 @@ Used by session utils before engaging with the mysqlsh.
 Can also be called independently.  
 
 .EXAMPLE
-## Test that ssh is installed is successful.
+## Test that mysqsh is installed is successful.
 
 Test-OpuMysqlshAvailability
 True
@@ -114,6 +114,39 @@ function Test-OpuMysqlshAvailable {
         return $false
     }
 }
+
+<#
+.SYNOPSIS
+Check if the required sqlcl is installed and available.
+
+.DESCRIPTION
+Used by session utils before engaging with the sqlcl. 
+Can also be called independently.  
+
+.EXAMPLE
+## Test that sqlcl is installed is successful.
+
+Test-OpuSqlclAvailability
+True
+
+.EXAMPLE
+## Test that Sqlcl is installed that fails.
+
+Test-OpuSshAvailability
+Write-Error: sql not found
+False
+#>
+function Test-OpuSqlclAvailable {
+    try {
+        Test-Executable -ExeName "sql" -ExeArguments "-V"
+
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
 
 <#
 .SYNOPSIS
@@ -354,5 +387,7 @@ function New-OpuPortForwardingSessionFull {
 
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
+Export-ModuleMember -Function Test-OpuSqlclAvailable
+
 Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
 Export-ModuleMember -Function New-OpuPortForwardingSessionFull
