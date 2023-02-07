@@ -13,14 +13,54 @@ The Bastion session inherits TTL from the Bastion (instance).
 OCID of Bastion with wich to create a session. 
  
 .PARAMETER ConnectionId
-OCID of connection containing the details about teh database system. 
+OCID of connection containing the details about the database system. 
 
 .PARAMETER TestOnly
-Set to $true to perform setup and teardown, but skip the start of msqlsh.
+Set to $true to perform setup and teardown, but skip the start of sqlcl.
 Incurs a 30 second wait. 
 
 .EXAMPLE 
+## Successfully invoking script and connecting to DB via bastion
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
+Getting details from connection
+Creating ephemeral key pair
+Creating Port Forwarding Session to 10.0.1.113:1521
+Waiting for creation of bastion session to complete
+Creating SSH tunnel
+Launching SQLcl
 
+
+SQLcl: Release 22.2 Production on Tue Feb 07 17:44:56 2023
+
+Copyright (c) 1982, 2023, Oracle.  All rights reserved.
+
+Last Successful login time: Ti Feb 07 2023 17:44:57 +01:00
+
+Connected to:
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.18.0.1.0
+
+SQL>
+## Invoking script without setting path to sqlcl (sql)
+.\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
+Write-Error: sql not found
+Remove-OpuPortForwardingSessionFull: C:\Users\espenbr\GitHub\oci-powershell-utils\Invoke_Sqlcl_Session.ps1:129
+Line |
+ 129 |  … dingSessionFull -BastionSessionDescription $bastionSessionDescription
+     |                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot bind argument to parameter 'BastionSessionDescription' because it is null.
+Write-Error: Error: sqlcl not properly installed
+
+
+## Invoking script with -TestOnly $true
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid -TestOnly $true
+Getting details from connection
+Creating ephemeral key pair
+Creating Port Forwarding Session to 10.0.1.113:1521
+Waiting for creation of bastion session to complete
+Creating SSH tunnel
+DEBUG: Waiting in 30 secs while you check stuff ...
+True
 #>
 
 param(
@@ -39,30 +79,6 @@ Set-Location $PSScriptRoot
 Import-Module './oci-powershell-utils.psm1'
 Pop-Location
 ## END: generic section
-
-<# Kinda flow
-
-$conn_ocid = "ocid1.databasetoolsconnection.oc1.eu-frankfurt-1.amaaaaaa3gkdkiaandprptbrd3puenlpt75peoqexr6xnfnoncuq27monnca"
-
-$my_conn = Get-OCIDatabasetoolsConnection -DatabaseToolsConnectionId $conn_ocid
-
-$my_db = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $my_conn.RelatedResource.Identifier
-
-
-$target_ip = $my_db.PrivateEndpointip
-
-
-$conn_str = $adb.ConnectionStrings.Low
-
-$conn_str
-adb.eu-frankfurt-1.oraclecloud.com:1522/hikomo1xnp7z6id_myadb_low.adb.oraclecloud.com
-
-$conn_str.Substring($conn_str.LastIndexOf("/") + 1)
-hikomo1xnp7z6id_myadb_low.adb.oraclecloud.com
-
-
-.\sql <usr>/<pwd>@tcps://127.0.0.1:9068/hikomo1xnp7z6id_myadb_low.adb.oraclecloud.com?ssl_server_dn_match=off
-#>
 
 try {
     ## START: generic section

@@ -13,14 +13,55 @@ The Bastion session inherits TTL from the Bastion (instance).
 OCID of Bastion with wich to create a session. 
  
 .PARAMETER ConnectionId
-OCID of connection containing the details about teh database system. 
+OCID of connection containing the details about the database system. 
 
 .PARAMETER TestOnly
 Set to $true to perform setup and teardown, but skip the start of msqlsh.
 Incurs a 30 second wait. 
 
 .EXAMPLE 
+## Successfully invoking script and accessing DB via bastion 
+❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid
+Getting details from connection
+Creating ephemeral key pair
+Creating Port Forwarding Session to 10.0.1.27:3306
+Waiting for creation of bastion session to complete
+Creating SSH tunnel
+Launching mysqlsh
+MySQL Shell 8.0.31
 
+Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
+Other names may be trademarks of their respective owners.
+
+Type '\help' or '\?' for help; '\quit' to exit.
+WARNING: Using a password on the command line interface can be insecure.
+Creating a session to 'admin@127.0.0.1:9004'
+Fetching schema names for auto-completion... Press ^C to stop.
+Your MySQL connection id is 38
+Server version: 8.0.32-cloud MySQL Enterprise - Cloud
+No default schema selected; type \use <schema> to set one.
+ MySQL  127.0.0.1:9004 ssl  JS >
+
+## Invoke the script without setting path to mysqlsh
+❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid
+Write-Error: mysqlsh not found
+Remove-OpuPortForwardingSessionFull: C:\Users\espenbr\GitHub\oci-powershell-utils\Invoke_Mysqlsh_Session.ps1:103
+Line |
+ 103 |  … dingSessionFull -BastionSessionDescription $bastionSessionDescription
+     |                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot bind argument to parameter 'BastionSessionDescription' because it is null.
+Write-Error: Error: Mysqlsh not properly installed
+
+## Invoke script with -TestOnly $true
+❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid -TestOnly $true
+Getting details from connection
+Creating ephemeral key pair
+Creating Port Forwarding Session to 10.0.1.27:3306
+Waiting for creation of bastion session to complete
+Creating SSH tunnel
+DEBUG: Waiting in 30 secs while you check stuff ...
+True
 #>
 
 param(
