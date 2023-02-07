@@ -2,16 +2,25 @@
 
 PowerShell scripts that utilize the the PowerShell API for OCI.
 
-The goal is to highlight the possibilities inherent in the robust feature set of OCI. 
-Specifically: Bastion Service and Database Tools.  
+The goal is to highlight the possibilities inherent in the robust feature set of OCI
+by replicating some of the functionality available inside of the OCI cloud console  
 
-There are two main scripts: 
+Key services used: Bastion and Database Tools in addition to MySQL and Autonomous DB.  
+
+There are three main scripts: 
 
 * `Invoke_Ssh_Session.ps1` invokes an ssh session via a Bastion.
 * `Invoke_Mysqlsh_Session.ps1` invokes a mysqlsh via a Bastion.
+* `Invoke_Sqlcl_Session.ps1` invokes sqlcl via Bastion.
 
-These two highlight how a secure channel can be created via Bastion and then utilized by another process.
-In this instance the two are tied together. 
+These highlight how a secure channel can be created via Bastion and then utilized by another process.
+
+## Get up and running quickly
+
+For ssh sessions all you need is the ssh binaries in your environment.   
+Both the database examples (Autonomous and MySQL) require one database and one connection object.  
+Look at [this](https://github.com/ebraekke/oci-adb-intro) repo for a terraform prescription for Autonomous.
+Similarly, [this](https://github.com/ebraekke/oci-mysql-intro) repo contains a terraform prescription for managed MySQL in OCI.
 
 ## How it works
 
@@ -59,6 +68,7 @@ The following software must be installed in your environment:
 * OCI PowerShell Modules
 * OpenSSH binaries
 * Mysqlsh (for Invoke_Mysqlsh_Session.ps1)
+* Sql (AKA sqlcl for Invoke_Sqlcl.ps1)
 
 ## Windows only? 
 

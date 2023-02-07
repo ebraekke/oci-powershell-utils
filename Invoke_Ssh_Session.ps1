@@ -76,6 +76,7 @@ try {
     
     ## use ssh-keygen to print public part of key
     ## ssh-keygen on Windows does not like "~", so convert to "$HOME"
+    Out-Host -InputObject "Validating key, provide password if prompted"
     ssh-keygen -y -f ($sshKey.Replace("~", $HOME)) | Out-Null
     if ($false -eq $?) {
         throw "$SshKey is not a valid private ssh key"

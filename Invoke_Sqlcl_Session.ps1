@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-Invoke  an mysqlsh sesssion with a target host accessible through the OCI Bastion service.
+Invoke  an sqlcl sesssion with a target host accessible through the OCI Bastion service.
 
 .DESCRIPTION
-Using the Bastion service and tunneling a mysqlsh session will be invoked on the target DB system. 
+Using the Bastion service and tunneling a sqlcl session will be invoked on the target DB system. 
 A ephemeral key pair for the Bastion session is created (and later destroyed). 
 This combo will allow you to "connect" through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
 A path from the Bastion to the target is required.
@@ -16,48 +16,47 @@ OCID of Bastion with wich to create a session.
 OCID of connection containing the details about the database system. 
 
 .PARAMETER TestOnly
-Set to $true to perform setup and teardown, but skip the start of msqlsh.
+Set to $true to perform setup and teardown, but skip the start of sqlcl.
 Incurs a 30 second wait. 
 
 .EXAMPLE 
-## Successfully invoking script and accessing DB via bastion 
-❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid
+## Successfully invoking script and connecting to DB via bastion
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
 Getting details from connection
 Creating ephemeral key pair
-Creating Port Forwarding Session to 10.0.1.27:3306
+Creating Port Forwarding Session to 10.0.1.113:1521
 Waiting for creation of bastion session to complete
 Creating SSH tunnel
-Launching mysqlsh
-MySQL Shell 8.0.31
+Launching SQLcl
 
-Copyright (c) 2016, 2022, Oracle and/or its affiliates.
-Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
-Other names may be trademarks of their respective owners.
 
-Type '\help' or '\?' for help; '\quit' to exit.
-WARNING: Using a password on the command line interface can be insecure.
-Creating a session to 'admin@127.0.0.1:9004'
-Fetching schema names for auto-completion... Press ^C to stop.
-Your MySQL connection id is 38
-Server version: 8.0.32-cloud MySQL Enterprise - Cloud
-No default schema selected; type \use <schema> to set one.
- MySQL  127.0.0.1:9004 ssl  JS >
+SQLcl: Release 22.2 Production on Tue Feb 07 17:44:56 2023
 
-## Invoke the script without setting path to mysqlsh
-❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid
-Write-Error: mysqlsh not found
-Remove-OpuPortForwardingSessionFull: C:\Users\espenbr\GitHub\oci-powershell-utils\Invoke_Mysqlsh_Session.ps1:103
+Copyright (c) 1982, 2023, Oracle.  All rights reserved.
+
+Last Successful login time: Ti Feb 07 2023 17:44:57 +01:00
+
+Connected to:
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.18.0.1.0
+
+SQL>
+## Invoking script without setting path to sqlcl (sql)
+.\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
+Write-Error: sql not found
+Remove-OpuPortForwardingSessionFull: C:\Users\espenbr\GitHub\oci-powershell-utils\Invoke_Sqlcl_Session.ps1:129
 Line |
- 103 |  … dingSessionFull -BastionSessionDescription $bastionSessionDescription
+ 129 |  … dingSessionFull -BastionSessionDescription $bastionSessionDescription
      |                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~
      | Cannot bind argument to parameter 'BastionSessionDescription' because it is null.
-Write-Error: Error: Mysqlsh not properly installed
+Write-Error: Error: sqlcl not properly installed
 
-## Invoke script with -TestOnly $true
-❯ .\Invoke_Mysqlsh_Session.ps1 -BastionId $bastion_ocid -connectionId $conn_ocid -TestOnly $true
+
+## Invoking script with -TestOnly $true
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid -TestOnly $true
 Getting details from connection
 Creating ephemeral key pair
-Creating Port Forwarding Session to 10.0.1.27:3306
+Creating Port Forwarding Session to 10.0.1.113:1521
 Waiting for creation of bastion session to complete
 Creating SSH tunnel
 DEBUG: Waiting in 30 secs while you check stuff ...
@@ -90,12 +89,12 @@ try {
     ## END: generic section
 
     ## Make sure mysqlsh is within reach first
-    if ($false -eq (Test-OpuMysqlshAvailable)) {
-        throw "Mysqlsh not properly installed"
+    if ($false -eq (Test-OpuSqlclAvailable)) {
+        throw "sqlcl not properly installed"
     }
 
     ## Import the modules needed here
-    Import-Module OCI.PSModules.Mysql
+    Import-Module OCI.PSModules.Database
     Import-Module OCI.PSModules.Databasetools
     Import-Module OCI.PSModules.Secrets
 
@@ -103,15 +102,17 @@ try {
     ## Grab main handle
     $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
 
-    ## Get db system and secret based on handle
-    $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier
+    ## Get adb, service_name and secret based on handle
+    $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier
+    $fullConnStr = $adb.ConnectionStrings.Low
+    $connStr =  $fullConnStr.Substring($fullConnStr.LastIndexOf("/") + 1)
     $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId
  
     ## Assign to local variables for readability
     $userName = $connection.UserName
     $passwordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
-    $targetHost = $mysqlDbSystem.IpAddress
-    $targetPort = $mysqlDbSystem.Port
+    $targetHost = $adb.PrivateEndpointip
+    $targetPort = 1521
   
     ## START: generic section
     ## Create session and process, get information in custom object -- see below
@@ -126,9 +127,9 @@ try {
         Start-Sleep -Seconds 30
         return $true
     }
-    
-    Out-Host -InputObject "Launching mysqlsh"
-    mysqlsh -u $userName -h 127.0.0.1 --port=$localPort --password=$password
+  
+    Out-Host -InputObject "Launching SQLcl"
+    sql -L ${userName}/${password}@tcps://127.0.0.1:${localPort}/${connStr}?ssl_server_dn_match=off
 }
 catch {
     ## What else can we do? 
