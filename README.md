@@ -15,6 +15,13 @@ There are three main scripts:
 
 These highlight how a secure channel can be created via Bastion and then utilized by another process.
 
+## Get up and running quickly
+
+For ssh sessions all you need is the ssh binaries in your environment.   
+Both the database examples (Autonomous and MySQL) require one database and one connection object.  
+Look at [this](https://github.com/ebraekke/oci-adb-intro) repo for a terraform prescription for Autonomous.
+Similarly, [this](https://github.com/ebraekke/oci-mysql-intro) repo contains a terraform prescription for managed MySQL in OCI.
+
 ## How it works
 
 The `Invoke_*.ps1` scripts have the same structure:
