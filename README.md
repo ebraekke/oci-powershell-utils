@@ -11,9 +11,11 @@ There are three main scripts:
 
 * `Invoke_Ssh_Session.ps1` invokes an ssh session via a Bastion.
 * `Invoke_Mysqlsh_Session.ps1` invokes a mysqlsh via a Bastion.
-* `Invoke_Sqlcl_Session.ps1` invokes sqlcl via Bastion.
+* `Invoke_Sqlcl_Session.ps1` invokes sqlcl via a Bastion.
 
 These highlight how a secure channel can be created via Bastion and then utilized by another process.
+
+Take a look at this [short video](https://securefiles.oracle.com/documents/link/LD075928001811BD033BBB474AC8044BB47984CCF680/fileview/DEB1EB52F85CDC8F7A093377BFCEB647947BD317810F/_oci-powershell-utils-sqlcl_short.mp4) to see `Invoke_Sqlcl_Session.ps1` in action.
 
 ## Get up and running quickly
 

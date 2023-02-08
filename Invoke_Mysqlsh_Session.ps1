@@ -128,7 +128,7 @@ try {
     }
     
     Out-Host -InputObject "Launching mysqlsh"
-    mysqlsh -u $userName -h 127.0.0.1 --port=$localPort --password=$password
+    mysqlsh --sql -u $userName -h 127.0.0.1 --port=$localPort --password=$password
 }
 catch {
     ## What else can we do? 
