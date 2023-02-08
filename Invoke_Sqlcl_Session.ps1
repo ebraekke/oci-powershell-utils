@@ -102,6 +102,11 @@ try {
     ## Grab main handle
     $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
 
+    ## check that this points to an ADB instance
+    if ("Autonomousdatabase" -ne $connection.RelatedResource.EntityType) {
+        throw "Connection does not point to an Autonomous database"
+    }
+
     ## Get adb, service_name and secret based on handle
     $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier
     $fullConnStr = $adb.ConnectionStrings.Low

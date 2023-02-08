@@ -103,6 +103,11 @@ try {
     ## Grab main handle
     $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
 
+    ## check that this points to an mysql database system
+    if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
+        throw "Connection does not point to a MySQL database system"
+    }
+
     ## Get db system and secret based on handle
     $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier
     $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId
