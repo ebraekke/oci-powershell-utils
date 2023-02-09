@@ -8,8 +8,12 @@ function Get-TempDir {
     ## Windows only for now() 
     if ($IsWindows) {
         return $env:TEMP
-    } else {
-        throw "Currently no support for *nix platforms"
+    } 
+    elseif ($IsLinux) {
+        return "/tmp"
+    } 
+    else {
+        throw "Currently no support for Mac"
     }
 }
 
@@ -22,24 +26,14 @@ function Test-Executable {
     )
 
     if ($null -eq $ExeName) {
-        $myError = "ExeName must be provided"
-        Write-Debug $myError
-        Throw $myError
+        Throw "TestExecutable: -ExeName must be provided"
     }
-    if ($null -eq $ExeArguments) {
-        $myError = "ExeArguments must be provided"
-        Write-Debug $myError
-        Throw $myError
-    }
-
     try {
-        # run process 
-        Start-Process -FilePath $ExeName -ArgumentList $ExeArguments -WindowStyle Hidden 
+        ## check that cmd exists
+        Get-Command $ExeName -ErrorAction Stop | Out-Null
     }
     catch {
-        $myError = "${ExeName} not found"
-        Write-Error $myError
-        throw $myError
+        throw "${ExeName} not found"
     }
 }
 
@@ -52,35 +46,26 @@ Used by port forwarding utils before engaging with the ssh tools.
 Can also be called independently.  
 
 .EXAMPLE
-## Test that ssh is installed is successful.
+## Test that ssh is installed is successful. (no output)
 
 Test-OpuSshAvailability
-True
+
 
 .EXAMPLE
 ## Test that ssh tools are installed that fails because of no ssh.
 
 Test-OpuSshAvailability
-Write-Error: ssh not found
-False
+Exception: ssh not found
 
 .EXAMPLE
 ## Test that ssh tools are installed that fails because of no ssh-keygen.
 
 Test-OpuSshAvailability
-Write-Error: ssh-keygen not found
-False
+Exception: ssh-keygen not found
 #>
 function Test-OpuSshAvailable {
-    try {
-        Test-Executable -ExeName "ssh" -ExeArguments "--help"
-        Test-Executable -ExeName "ssh-keygen" -ExeArguments "--help"
-        
-        Return $true
-    }
-    catch {
-        return $false
-    }    
+    Test-Executable -ExeName "ssh"
+    Test-Executable -ExeName "ssh-keygen"        
 }
 
 <#
@@ -92,27 +77,18 @@ Used by session utils before engaging with the mysqlsh.
 Can also be called independently.  
 
 .EXAMPLE
-## Test that mysqsh is installed is successful.
+## Test that mysqsh is installed is successful. (no response) 
 
 Test-OpuMysqlshAvailability
-True
 
 .EXAMPLE
 ## Test that mysqlsh is installed that fails.
 
 Test-OpuSshAvailability
-Write-Error: mysqlsh not found
-False
+Exception: mysqlsh not found
 #>
 function Test-OpuMysqlshAvailable {
-    try {
-        Test-Executable -ExeName "mysqlsh" -ExeArguments "--help"
-
-        return $true
-    }
-    catch {
-        return $false
-    }
+    Test-Executable -ExeName "mysqlsh"
 }
 
 <#
@@ -124,27 +100,17 @@ Used by session utils before engaging with the sqlcl.
 Can also be called independently.  
 
 .EXAMPLE
-## Test that sqlcl is installed is successful.
-
+## Test that sqlcl is installed is successful (no response)
 Test-OpuSqlclAvailability
-True
 
 .EXAMPLE
 ## Test that Sqlcl is installed that fails.
 
-Test-OpuSshAvailability
-Write-Error: sql not found
-False
+Test-OpuSqlclAvailability
+Exception: sql not found
 #>
 function Test-OpuSqlclAvailable {
-    try {
-        Test-Executable -ExeName "sql" -ExeArguments "-V"
-
-        return $true
-    }
-    catch {
-        return $false
-    }
+    Test-Executable -ExeName "sql"
 }
 
 
@@ -320,7 +286,13 @@ function New-OpuPortForwardingSessionFull {
         ## Process will fail if another key with same name exists, in that case -- TODO: decide what to do
         Out-Host -InputObject "Creating ephemeral key pair"
         $keyFile = -join("${tmpDir}/bastionkey-","${now}-${localPort}")
-        ssh-keygen -t rsa -b 2048 -f $keyFile -q -N ''
+
+        try {
+            ssh-keygen -t rsa -b 2048 -f $keyFile -q -N ''            
+        }
+        catch {
+            throw "ssh-keygen: $_"
+        }
     
         Out-Host -InputObject "Creating Port Forwarding Session to ${TargetHost}:${TargetPort}"
 
@@ -346,10 +318,20 @@ function New-OpuPortForwardingSessionFull {
         $sessionDetails.TargetResourceDetails = $TargetResourceDetails
         $sessionDetails.KeyDetails            = $keyDetails
     
-        $bastionSession = New-OciBastionSession -CreateSessionDetails $sessionDetails
+        try {
+            $bastionSession = New-OciBastionSession -CreateSessionDetails $sessionDetails -ErrorAction Stop
+        }
+        catch {
+            throw "New-OciBastionSession: $_"
+        }
     
         Out-Host -InputObject "Waiting for creation of bastion session to complete"
-        $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active, Failed
+        try {
+            $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active, Failed -ErrorAction Stop 
+        }
+        catch {
+            throw "Get-OCIBastionSession: $_"
+        }
 
         ## Create ssh command argument string with relevant parameters
         $sshArgs = $bastionSession.SshMetadata["command"]
@@ -360,7 +342,12 @@ function New-OpuPortForwardingSessionFull {
         Write-Debug "CONN: ssh ${sshArgs}"
         
         Out-Host -InputObject "Creating SSH tunnel"
-        $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru
+        try {
+            $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru -ErrorAction Stop
+        }
+        catch {
+            throw "Start-Process: $_"
+        }
 
         ## Create return Object
         $localBastionSession = [PSCustomObject]@{
@@ -373,9 +360,8 @@ function New-OpuPortForwardingSessionFull {
         
         $localBastionSession
     } catch {
-        ## What else can we do? 
-        Write-Error "Error: $_"
-        return $false
+        ## Pass exception on back
+        throw "New-OpuPortForwardingSessionFull: $_"
     } finally {
         ## To Maximize possible clean ups, continue on error 
         $ErrorActionPreference = "Continue"

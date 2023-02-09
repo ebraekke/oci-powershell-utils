@@ -64,9 +64,7 @@ Pop-Location
 try {
     ## START: generic section
     ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
+    Test-OpuSshAvailable
     ## END: generic section
     
     ## Make sure mandatory input at least is a proper file  
@@ -110,8 +108,10 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    ## Request cleanup 
-    Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    ## Request cleanup if session object has been created
+    if ($null -ne $bastionSessionDescription) {
+        Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    }
 
     ## Finally, unload meodule from memory 
     Set-Location $PSScriptRoot

@@ -96,15 +96,11 @@ Pop-Location
 try {
     ## START: generic section
     ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
+    Test-OpuSshAvailable
     ## END: generic section
 
     ## Make sure sqlcl is within reach first
-    if ($false -eq (Test-OpuSqlclAvailable)) {
-        throw "sqlcl not properly installed"
-    }
+    Test-OpuSqlclAvailable
 
     ## Import the modules needed here
     Import-Module OCI.PSModules.Database
@@ -126,7 +122,7 @@ try {
 
     ## Grab adb info based on conn handle, ensure it is in correct lifecycle state
     try {
-        $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier -WaitForLifecycleState Available -WaitIntervalSeconds 0 -ErrorAction Stop        
+        $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier -WaitForLifecycleState Available -WaitIntervalSeconds 0 -ErrorAction Stop
     }
     catch {
         throw "Get-OCIDatabaseAutonomousDatabase: $_"
@@ -134,7 +130,7 @@ try {
 
     ## Get secret (read password) from connection handle
     try {
-        $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop         
+        $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
     }
     catch {
         throw "Get-OCISecretsSecretBundle: $_"
@@ -182,7 +178,7 @@ finally {
         Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
     }
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location

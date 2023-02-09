@@ -84,15 +84,11 @@ Pop-Location
 try {
     ## START: generic section
     ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
+    Test-OpuSshAvailable
     ## END: generic section
 
     ## Make sure mysqlsh is within reach first
-    if ($false -eq (Test-OpuMysqlshAvailable)) {
-        throw "Mysqlsh not properly installed"
-    }
+    Test-OpuMysqlshAvailable
 
     ## Import the modules needed here
     Import-Module OCI.PSModules.Mysql
@@ -100,26 +96,43 @@ try {
     Import-Module OCI.PSModules.Secrets
 
     Out-Host -InputObject "Getting details from connection"
-    ## Grab main handle
-    $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
 
-    ## check that this points to an mysql database system
+    ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
+    try {
+        $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+    }
+    catch {
+        throw "Get-OCIDatabasetoolsconnection: $_"
+    }
     if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
         throw "Connection does not point to a MySQL database system"
     }
 
-    ## Get db system and secret based on handle
-    $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier
-    $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId
- 
+    ## Grab mysql db system info based on conn handle, ensure it is in correct lifecycle state
+    try {
+        $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier  -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+    } 
+    catch {
+        throw "Get-OCIMysqlDbSystem: $_"
+    }
+
+    ## Get secret (read password) from connection handle
+    try {
+        $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
+    }
+    catch {
+        throw "Get-OCISecretsSecretBundle: $_"
+    }
+
     ## Assign to local variables for readability
     $userName = $connection.UserName
-    $passwordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
+    $passwordBase64 = $secret.SecretBundleContent.Content
     $targetHost = $mysqlDbSystem.IpAddress
     $targetPort = $mysqlDbSystem.Port
   
     ## START: generic section
     ## Create session and process, get information in custom object -- see below
+    ## TODO: return $false if errror, need to throw and catch! 
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
     $localPort = $bastionSessionDescription.LocalPort
     ## END: generic section
@@ -145,10 +158,12 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    ## Request cleanup 
-    Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    ## Request cleanup if session object has been created
+    if ($null -ne $bastionSessionDescription) {
+        Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    }
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location
