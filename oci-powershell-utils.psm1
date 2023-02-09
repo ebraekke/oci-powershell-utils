@@ -349,7 +349,11 @@ function New-OpuPortForwardingSessionFull {
         
         Out-Host -InputObject "Creating SSH tunnel"
         try {
-            $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru -ErrorAction Stop
+            if ($IsWindows) {
+                $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -WindowStyle Hidden -PassThru -ErrorAction Stop
+            } elseif ($IsLinux) {
+                $sshProcess = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -PassThru -ErrorAction Stop
+            }
         }
         catch {
             throw "Start-Process: $_"
