@@ -288,7 +288,13 @@ function New-OpuPortForwardingSessionFull {
         $keyFile = -join("${tmpDir}/bastionkey-","${now}-${localPort}")
 
         try {
-            ssh-keygen -t rsa -b 2048 -f $keyFile -q -N ''            
+            if ($IsWindows) {
+                ssh-keygen -t rsa -b 2048 -f $keyFile -q -N '' 
+            } elseif ($IsLinux) {
+                ssh-keygen -t rsa -b 2048 -f $keyFile -q -N '""' 
+            } else {
+                throw "Platform not supported .. how did you get here?"
+            }
         }
         catch {
             throw "ssh-keygen: $_"
