@@ -341,7 +341,7 @@ function New-OpuPortForwardingSessionFull {
 
         ## Create ssh command argument string with relevant parameters
         $sshArgs = $bastionSession.SshMetadata["command"]
-        $sshArgs = $sshArgs.replace("ssh",          "") 
+        $sshArgs = $sshArgs.replace("ssh",          "-4")    ## avoid "bind: Cannot assign requested address" 
         $sshArgs = $sshArgs.replace("<privateKey>", $keyFile)
         $sshArgs = $sshArgs.replace("<localPort>",  $localPort)
 
