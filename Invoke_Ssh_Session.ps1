@@ -96,7 +96,12 @@ try {
     ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
     ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
     ## Ensures no verification of locally forwarded port and localhost combos. 
-    ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
+    if ($IsWindows) {
+        ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
+    } else {
+        throw "Invoke_Ssh_session.ps1: Plattform not supported."
+    }
+
 }
 catch {
     ## What else can we do? 
