@@ -13,7 +13,7 @@ function Get-TempDir {
         return "/tmp"
     } 
     else {
-        throw "Currently no support for Mac"
+        throw "Get-TempDir: Currently no support for Mac"
     }
 }
 

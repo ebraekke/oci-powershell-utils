@@ -67,7 +67,7 @@ try {
     Test-OpuSshAvailable
     ## END: generic section
     
-    if ($IsMacOS -or $IsLinux) {
+    if (! $IsWindows) {
         throw "Invoke_Ssh_session.ps1: Platform not supported!"
     }
 
