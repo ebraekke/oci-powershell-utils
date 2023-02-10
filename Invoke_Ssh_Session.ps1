@@ -67,6 +67,10 @@ try {
     Test-OpuSshAvailable
     ## END: generic section
     
+    if ($IsMacOS -or $IsLinux) {
+        throw "Invoke_Ssh_session.ps1: Platform not supported!"
+    }
+
     ## Make sure mandatory input at least is a proper file  
     if ($false -eq (Test-Path $SshKey -PathType Leaf)) {
         throw "${SshKey} is not a valid file"        
