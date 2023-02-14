@@ -50,14 +50,12 @@ Import-Module './oci-powershell-utils.psm1'
 Pop-Location
 
 try {
-    ## Request cleanup 
+    ## Request cleanup, this will always "SUCCED", that is continue to tear down until all avenues have been explored  
     Remove-OpuPortForwardingSessionFull -BastionSessionDescription $BastionSessionDescription
 
-    $true
 }
 catch {
-    ## What else can we do? 
-    Write-Error "Error: $_"
+    Write-Error "Remove_Port_Forwarding_Session_Full.ps1: $_"
     return $false
 }
 finally {
@@ -72,6 +70,3 @@ finally {
     ## Done, restore settings
     $ErrorActionPreference = $userErrorActionPreference
 }
-
-
-

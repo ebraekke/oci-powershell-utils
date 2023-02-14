@@ -67,7 +67,7 @@ try {
     Test-OpuSshAvailable
     ## END: generic section
     
-    if (! $IsWindows) {
+    if ($IsMacOS) {
         throw "Invoke_Ssh_session.ps1: Platform not supported!"
     }
 
@@ -100,12 +100,7 @@ try {
     ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
     ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
     ## Ensures no verification of locally forwarded port and localhost combos. 
-    if ($IsWindows) {
-        ssh -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
-    } else {
-        throw "Invoke_Ssh_session.ps1: Plattform not supported."
-    }
-
+    ssh -4 -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
 }
 catch {
     ## What else can we do? 
