@@ -75,7 +75,8 @@ try {
     if ($false -eq (Test-Path $SshKey -PathType Leaf)) {
         throw "${SshKey} is not a valid file"        
     }
-    
+
+    <#
     ## use ssh-keygen to print public part of key
     ## ssh-keygen on Windows does not like "~", so convert to "$HOME"
     Out-Host -InputObject "Validating key, provide password if prompted"
@@ -83,6 +84,7 @@ try {
     if ($false -eq $?) {
         throw "$SshKey is not a valid private ssh key"
     }
+    #>
 
     ## START: generic section
     ## Create session and process, get information in custom object -- see below
@@ -104,7 +106,7 @@ try {
 }
 catch {
     ## What else can we do? 
-    Write-Error "Error: $_"
+    Write-Error "Invoke_Ssh_Session.ps1: $_"
     return $false
 }
 finally {

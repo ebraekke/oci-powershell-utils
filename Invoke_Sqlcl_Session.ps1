@@ -165,7 +165,7 @@ try {
 }
 catch {
     ## What else can we do?
-    Write-Error "Error caught: $_"
+    Write-Error "Invoke_Sqlcl_Session.ps1: $_"
     return $false
 }
 finally {

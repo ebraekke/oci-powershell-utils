@@ -82,60 +82,18 @@ Pop-Location
 ## END: generic section
 
 try {
-    ## START: generic section
-    ## check that mandatory sw is installed    
-    Test-OpuSshAvailable
-    ## END: generic section
-
-    ## Make sure mysqlsh is within reach first
-    Test-OpuMysqlshAvailable
-
-    ## Import the modules needed here
-    Import-Module OCI.PSModules.Mysql
-    Import-Module OCI.PSModules.Databasetools
-    Import-Module OCI.PSModules.Secrets
-
-    Out-Host -InputObject "Getting details from connection"
-
-    ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
-    try {
-        $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
-    }
-    catch {
-        throw "Get-OCIDatabasetoolsconnection: $_"
-    }
-    if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
-        throw "Connection does not point to a MySQL database system"
-    }
-
-    ## Grab mysql db system info based on conn handle, ensure it is in correct lifecycle state
-    try {
-        $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier  -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
-    } 
-    catch {
-        throw "Get-OCIMysqlDbSystem: $_"
-    }
-
-    ## Get secret (read password) from connection handle
-    try {
-        $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
-    }
-    catch {
-        throw "Get-OCISecretsSecretBundle: $_"
-    }
+    ## Grab connection, ask for dyn assigned localport
+    $localMysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId -LocalPort 0
 
     ## Assign to local variables for readability
-    $userName = $connection.UserName
-    $passwordBase64 = $secret.SecretBundleContent.Content
-    $targetHost = $mysqlDbSystem.IpAddress
-    $targetPort = $mysqlDbSystem.Port
+    $userName = $localMysqlConnectionDescription.UserName
+    $passwordBase64 = $localMysqlConnectionDescription.PasswordBase64
+    $targetHost = $localMysqlConnectionDescription.TargetHost
+    $targetPort = $localMysqlConnectionDescription.TargetPort
+    $localPort = $localMysqlConnectionDescription.LocalPort
   
-    ## START: generic section
-    ## Create session and process, get information in custom object -- see below
-    ## TODO: return $false if errror, need to throw and catch! 
-    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
-    $localPort = $bastionSessionDescription.LocalPort
-    ## END: generic section
+    ## Create session and process, advice on local port; get information in custom object -- used in teardown below
+    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort $localPort
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
 
@@ -150,7 +108,7 @@ try {
 }
 catch {
     ## What else can we do? 
-    Write-Error "Error: $_"
+    Write-Error "Invoke_Mysqlsh_Session.ps1: $_"
     return $false
 }
 finally {

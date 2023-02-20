@@ -222,6 +222,11 @@ IP address of target host.
 Port number at TargetHost to create a session to. 
 Defaults to 22.  
 
+.PARAMETER LocalPort
+Local port to use for port forwarding. 
+Defaults to 0, means that it will be randomly assigned.
+Error thrown if requesting a port number lower than 1024.  
+
 .EXAMPLE 
 ## Creating a forwarding session to the default port
 $bastion_session=New-OpuPortForwardingSessionFull -BastionId $bastion_ocid -TargetHost $target_ip
@@ -270,18 +275,29 @@ function New-OpuPortForwardingSessionFull {
         [String]$BastionId, 
         [Parameter(Mandatory,HelpMessage='IP address of target host')]
         [String]$TargetHost,
-        [Int32]$TargetPort=22        
+        [Int32]$TargetPort=22,
+        [Parameter(HelpMessage='Use this local port, 0 means assign')]
+        [Int32]$LocalPort=0
     )
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
 
     try {
+        ## check that mandatory sw is installed    
+        Test-OpuSshAvailable
+
         Import-Module OCI.PSModules.Bastion
 
         $tmpDir = Get-TempDir
 
         $now = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
-        $localPort = Get-Random -Minimum 9001 -Maximum 9099
+
+        ## Assign or verify LocalPort 
+        if (0 -eq $LocalPort) {
+            $LocalPort = Get-Random -Minimum 9001 -Maximum 9099
+        } elseif ($LocalPort -lt 1024) {
+            throw "LocalPort cannot be less than 1024!"
+        }
 
         ## Generate ephemeral key pair in $tmpDir.  
         ## name: bastionkey-${now}.{localPort}
@@ -296,7 +312,7 @@ function New-OpuPortForwardingSessionFull {
             } elseif ($IsLinux) {
                 ssh-keygen -t rsa -b 2048 -f $keyFile -q -N '""' 
             } else {
-                throw "Platform not supported .. how did you get here?"
+                throw "Platform not supported ... how did you get here?"
             }
         }
         catch {
@@ -384,9 +400,126 @@ function New-OpuPortForwardingSessionFull {
     }
 }
 
+<#
+return:
+
+        $localMysqlConnection = [PSCustomObject]@{
+            UserName = $connection.UserName
+            PasswordBase64 = $secret.SecretBundleContent.Content
+            TargetHost = $mysqlDbSystem.IpAddress
+            TargetPort = $mysqlDbSystem.Port
+            LocalPort = $LocalPort
+        }
+
+
+#>
+function New-OpuMysqlConnection {
+    param (
+        [Parameter(Mandatory, HelpMessage='OCID of connection')]
+        [String]$ConnectionId,
+        [Parameter(HelpMessage='Use this local port, 0 means assign')]
+        [Int32]$LocalPort=0
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+        ## Make sure mysqlsh is within reach first
+        Test-OpuMysqlshAvailable
+
+        ## Import the modules needed here
+        Import-Module OCI.PSModules.Mysql
+        Import-Module OCI.PSModules.Databasetools
+        Import-Module OCI.PSModules.Secrets
+
+        ## Assign or verify LocalPort 
+        if (0 -eq $LocalPort) {
+            $LocalPort = Get-Random -Minimum 9001 -Maximum 9099
+        } elseif ($LocalPort -lt 1024) {
+            throw "LocalPort cannot be less than 1024!"
+        }
+
+        Out-Host -InputObject "Getting details from connection"
+
+        ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
+        try {
+            $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIDatabasetoolsconnection: $_"
+        }
+        if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
+            throw "Connection does not point to a MySQL database system"
+        }
+    
+        ## Grab mysql db system info based on conn handle, ensure it is in correct lifecycle state
+        try {
+            $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier  -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+        } 
+        catch {
+            throw "Get-OCIMysqlDbSystem: $_"
+        }
+    
+        ## Get secret (read password) from connection handle
+        try {
+            $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCISecretsSecretBundle: $_"
+        }
+    
+        ## Create return Object
+        $localMysqlConnection = [PSCustomObject]@{
+            UserName = $connection.UserName
+            PasswordBase64 = $secret.SecretBundleContent.Content
+            TargetHost = $mysqlDbSystem.IpAddress
+            TargetPort = $mysqlDbSystem.Port
+            LocalPort = $LocalPort
+        }
+
+        $localMysqlConnection
+ 
+    } catch {
+        ## Pass exception on back
+        throw "New-OpuMysqlConnection: $_"
+    } finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+    
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
+function Read-OpuBase64String {
+    param (
+        [Parameter(Mandatory, HelpMessage='BAse64 encoded string')]
+        [String]$Base64String
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+    	[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($conn.PasswordBase64)) 
+    } catch {
+        ## Pass exception on back
+        throw "Read-OpuBase64String: $_"
+    } 
+    finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+    
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
 Export-ModuleMember -Function Test-OpuSqlclAvailable
 
 Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
 Export-ModuleMember -Function New-OpuPortForwardingSessionFull
+Export-ModuleMember -Function New-OpuMysqlConnection
+
+Export-ModuleMember -Function Read-OpuBase64String
