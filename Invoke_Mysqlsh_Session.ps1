@@ -82,18 +82,18 @@ Pop-Location
 ## END: generic section
 
 try {
-    ## Grab connection, ask for dyn assigned localport
-    $localMysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId -LocalPort 0
+    ## Grab connection
+    $localMysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId
 
     ## Assign to local variables for readability
     $userName = $localMysqlConnectionDescription.UserName
     $passwordBase64 = $localMysqlConnectionDescription.PasswordBase64
     $targetHost = $localMysqlConnectionDescription.TargetHost
     $targetPort = $localMysqlConnectionDescription.TargetPort
-    $localPort = $localMysqlConnectionDescription.LocalPort
   
-    ## Create session and process, advice on local port; get information in custom object -- used in teardown below
-    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort $localPort
+    ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
+    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
+    $localPort = $bastionSessionDescription.LocalPort
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
 

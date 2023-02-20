@@ -408,7 +408,6 @@ return:
             PasswordBase64 = $secret.SecretBundleContent.Content
             TargetHost = $mysqlDbSystem.IpAddress
             TargetPort = $mysqlDbSystem.Port
-            LocalPort = $LocalPort
         }
 
 
@@ -416,9 +415,7 @@ return:
 function New-OpuMysqlConnection {
     param (
         [Parameter(Mandatory, HelpMessage='OCID of connection')]
-        [String]$ConnectionId,
-        [Parameter(HelpMessage='Use this local port, 0 means assign')]
-        [Int32]$LocalPort=0
+        [String]$ConnectionId
     )
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
@@ -431,13 +428,6 @@ function New-OpuMysqlConnection {
         Import-Module OCI.PSModules.Mysql
         Import-Module OCI.PSModules.Databasetools
         Import-Module OCI.PSModules.Secrets
-
-        ## Assign or verify LocalPort 
-        if (0 -eq $LocalPort) {
-            $LocalPort = Get-Random -Minimum 9001 -Maximum 9099
-        } elseif ($LocalPort -lt 1024) {
-            throw "LocalPort cannot be less than 1024!"
-        }
 
         Out-Host -InputObject "Getting details from connection"
 
@@ -474,7 +464,6 @@ function New-OpuMysqlConnection {
             PasswordBase64 = $secret.SecretBundleContent.Content
             TargetHost = $mysqlDbSystem.IpAddress
             TargetPort = $mysqlDbSystem.Port
-            LocalPort = $LocalPort
         }
 
         $localMysqlConnection
