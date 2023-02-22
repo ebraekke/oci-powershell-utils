@@ -82,14 +82,17 @@ Pop-Location
 ## END: generic section
 
 try {
+    ## Make sure mysqlsh is within reach first
+    Test-OpuMysqlshAvailable
+
     ## Grab connection
-    $localMysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId
+    $mysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId
 
     ## Assign to local variables for readability
-    $userName = $localMysqlConnectionDescription.UserName
-    $passwordBase64 = $localMysqlConnectionDescription.PasswordBase64
-    $targetHost = $localMysqlConnectionDescription.TargetHost
-    $targetPort = $localMysqlConnectionDescription.TargetPort
+    $userName = $mysqlConnectionDescription.UserName
+    $passwordBase64 = $mysqlConnectionDescription.PasswordBase64
+    $targetHost = $mysqlConnectionDescription.TargetHost
+    $targetPort = $mysqlConnectionDescription.TargetPort
   
     ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0

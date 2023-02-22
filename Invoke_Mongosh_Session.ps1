@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-Invoke  an sqlcl sesssion with a target host accessible through the OCI Bastion service.
+Invoke  an mongosh sesssion with a target host accessible through the OCI Bastion service.
 
 .DESCRIPTION
-Using the Bastion service and tunneling a sqlcl session will be invoked on the target DB system. 
+Using the Bastion service and tunneling a mongosh session will be invoked on the target DB system. 
 A ephemeral key pair for the Bastion session is created (and later destroyed). 
 This combo will allow you to "connect" through the Bastion service via a local port and to your destination: $TargetHost:$TargetPort   
 A path from the Bastion to the target is required.
@@ -21,59 +21,13 @@ Incurs a 30 second wait.
 
 .EXAMPLE 
 ## Successfully invoking script and connecting to DB via bastion
-❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
-Getting details from connection
-Creating ephemeral key pair
-Creating Port Forwarding Session to 10.0.1.113:1521
-Waiting for creation of bastion session to complete
-Creating SSH tunnel
-Launching SQLcl
-
-
-SQLcl: Release 22.2 Production on Tue Feb 07 17:44:56 2023
-
-Copyright (c) 1982, 2023, Oracle.  All rights reserved.
-
-Last Successful login time: Ti Feb 07 2023 17:44:57 +01:00
-
-Connected to:
-Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
-Version 19.18.0.1.0
-
-SQL>
 
 ## Invoking script without setting path to sqlcl (sql)
-.\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
-Write-Error: sql not found
-Write-Error: Error: sqlcl not properly installed
 
 ## Invoking script with -TestOnly $true
-❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid -TestOnly $true
-Getting details from connection
-Creating ephemeral key pair
-Creating Port Forwarding Session to 10.0.1.113:1521
-Waiting for creation of bastion session to complete
-Creating SSH tunnel
-DEBUG: Waiting in 30 secs while you check stuff ...
-True
 
 ## Invoking script and getting errors and you do not know why (tip: go off VPN)
-❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $adb_conn_ocid
-Getting details from connection
-Creating ephemeral key pair
-Creating Port Forwarding Session to 10.0.1.51:1521
-Waiting for creation of bastion session to complete
-Creating SSH tunnel
-Launching SQLcl
 
-
-SQLcl: Release 22.2 Production on Thu Feb 09 07:40:57 2023
-
-Copyright (c) 1982, 2023, Oracle.  All rights reserved.
-
-  USER          = admin
-  URL           = jdbc:oracle:thin:@tcps://127.0.0.1:9066/hikomo1xnp7z6id_myadb_low.adb.oraclecloud.com?ssl_server_dn_match=off
-  Error Message = IO Error: The Network Adapter could not establish the connection (CONNECTION_ID=sh9DeAMwS9alZ/4KpbQ2DQ==)
 #>
 
 param(
@@ -94,18 +48,21 @@ Pop-Location
 ## END: generic section
 
 try {
-    ## Make sure sqlcl is within reach first
-    Test-OpuSqlclAvailable
+    ## Make sure mongosh is within reach first
+    Test-OpuMongoshAvailable
 
     ## Grab connection
     $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId
 
-    ## Assign to local variables for readability
+    ## Assign to local variables for readability, note we are using the mongo port of 27017
     $userName = $adbConnectionDescription.UserName
     $passwordBase64 = $adbConnectionDescription.PasswordBase64
     $targetHost = $adbConnectionDescription.TargetHost
-    $targetPort = $adbConnectionDescription.TargetPort
-    $connStr = $adbConnectionDescription.ConnStr
+    $targetPort = "27017"
+
+    if ($false -eq $adbConnectionDescription.IsMongoApiEnabled) {
+        throw "MongoApi is not enabled"
+    }
   
     ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
@@ -119,12 +76,26 @@ try {
         return $true
     }
   
-    Out-Host -InputObject "Launching SQLcl"
-    sql -L ${userName}/${password}@tcps://127.0.0.1:${localPort}/${connStr}?ssl_server_dn_match=off
+    $urlEncodedPassword = [System.Web.HttpUtility]::UrlEncode($password)
+
+    ## Stitch together a connection url for mongosh
+    ## Use localhost, 127.0.0.1 will result in "MongoNetworkError: Client network socket disconnected before secure TLS connection was established"
+    $connUrl = "mongodb://${userName}:${urlEncodedPassword}@localhost:${localPort}/${userName}" + '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true'
+
+    Out-Host -InputObject "Launching mongosh"
+    Out-Host -InputObject "mongosh --tls --tlsAllowInvalidCertificates '$connUrl'"
+
+    ## TODO: Resolve challenge with quoting of parameter string
+    mongosh --tls --tlsAllowInvalidCertificates `"$connUrl`"
+
+    if ($true) {
+        Out-Host -InputObject "DEBUG: Waiting in 60 secs while you check stuff ..."
+        Start-Sleep -Seconds 60    
+    }
 }
 catch {
     ## What else can we do?
-    Write-Error "Invoke_Sqlcl_Session.ps1: $_"
+    Write-Error "Invoke_Mongosh_Session.ps1: $_"
     return $false
 }
 finally {

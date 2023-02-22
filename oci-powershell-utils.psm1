@@ -113,6 +113,28 @@ function Test-OpuSqlclAvailable {
     Test-Executable -ExeName "sql"
 }
 
+<#
+.SYNOPSIS
+Check if the required mongosh executable is installed and available.
+
+.DESCRIPTION
+Used by session utils before engaging with the mongosh. 
+Can also be called independently.  
+
+.EXAMPLE
+## Test that mongosh is installed is successful (no response)
+Test-OpuMongoshAvailability
+
+.EXAMPLE
+## Test that mongosh is installed that fails.
+
+Test-OpuMongoshAvailability
+Exception: mongosh not found
+#>
+function Test-OpuMongoshAvailable {
+    Test-Executable -ExeName "mongosh"
+}
+
 
 <#
 .SYNOPSIS
@@ -403,7 +425,7 @@ function New-OpuPortForwardingSessionFull {
 <#
 return:
 
-        $localMysqlConnection = [PSCustomObject]@{
+        $mysqlConnection = [PSCustomObject]@{
             UserName = $connection.UserName
             PasswordBase64 = $secret.SecretBundleContent.Content
             TargetHost = $mysqlDbSystem.IpAddress
@@ -421,9 +443,6 @@ function New-OpuMysqlConnection {
     $ErrorActionPreference = "Stop" 
 
     try {
-        ## Make sure mysqlsh is within reach first
-        Test-OpuMysqlshAvailable
-
         ## Import the modules needed here
         Import-Module OCI.PSModules.Mysql
         Import-Module OCI.PSModules.Databasetools
@@ -459,14 +478,14 @@ function New-OpuMysqlConnection {
         }
     
         ## Create return Object
-        $localMysqlConnection = [PSCustomObject]@{
+        $mysqlConnection = [PSCustomObject]@{
             UserName = $connection.UserName
             PasswordBase64 = $secret.SecretBundleContent.Content
             TargetHost = $mysqlDbSystem.IpAddress
             TargetPort = $mysqlDbSystem.Port
         }
 
-        $localMysqlConnection
+        $mysqlConnection
  
     } catch {
         ## Pass exception on back
@@ -480,9 +499,101 @@ function New-OpuMysqlConnection {
     }
 }
 
+<#
+return:
+
+        $adbConnection = [PSCustomObject]@{
+            UserName = $connection.UserName
+            PasswordBase64 = $secret.SecretBundleContent.Content
+            TargetHost = $adb.PrivateEndpointip
+            TargetPort = 1521
+            ConnStr = $connStr
+            IsMongoApiEnabled = $isMongoApiEnabled
+        }
+
+#>
+function New-OpuAdbConnection {
+    param (
+        [Parameter(Mandatory, HelpMessage='OCID of connection')]
+        [String]$ConnectionId
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+        ## Import the modules needed here
+        Import-Module OCI.PSModules.Database
+        Import-Module OCI.PSModules.Databasetools
+        Import-Module OCI.PSModules.Secrets
+    
+        Out-Host -InputObject "Getting details from connection"
+
+        ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
+        try {
+            $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIDatabasetoolsconnection: $_"
+        }
+        if ("Autonomousdatabase" -ne $connection.RelatedResource.EntityType) {
+            throw "Connection does not point to an Autonomous database"
+        }
+        
+        ## Grab adb info based on conn handle, ensure it is in correct lifecycle state
+        try {
+            $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier -WaitForLifecycleState Available -WaitIntervalSeconds 0 -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIDatabaseAutonomousDatabase: $_"
+        }
+    
+        ## Get secret (read password) from connection handle
+        try {
+            $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCISecretsSecretBundle: $_"
+        }
+    
+        ## Create connection string
+        $fullConnStr = $adb.ConnectionStrings.Low
+        $connStr =  $fullConnStr.Substring($fullConnStr.LastIndexOf("/") + 1)
+
+        # determine in mongoapi is enabled
+        if (1 -eq ($adb.DbToolsDetails | Where-Object {$_.IsEnabled -eq 'True'} | Where-Object {$_.Name -eq 'MongodbApi'}).Count) {
+            $isMongoApiEnabled = $true
+        } 
+        else {
+            $isMongoApiEnabled = $false
+        }
+
+        ## Create return Object
+        $adbConnection = [PSCustomObject]@{
+            UserName = $connection.UserName
+            PasswordBase64 = $secret.SecretBundleContent.Content
+            TargetHost = $adb.PrivateEndpointip
+            TargetPort = 1521
+            ConnStr = $connStr
+            IsMongoApiEnabled = $isMongoApiEnabled
+        }
+
+        $adbConnection
+ 
+    } catch {
+        ## Pass exception on back
+        throw "New-OpuAdbConnection: $_"
+    } finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+    
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
 function Read-OpuBase64String {
     param (
-        [Parameter(Mandatory, HelpMessage='BAse64 encoded string')]
+        [Parameter(Mandatory, HelpMessage='Base64 encoded string')]
         [String]$Base64String
     )
     $userErrorActionPreference = $ErrorActionPreference
@@ -506,9 +617,12 @@ function Read-OpuBase64String {
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
 Export-ModuleMember -Function Test-OpuSqlclAvailable
+Export-ModuleMember -Function Test-OpuMongoshAvailable
 
-Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
 Export-ModuleMember -Function New-OpuPortForwardingSessionFull
+Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
+
 Export-ModuleMember -Function New-OpuMysqlConnection
+Export-ModuleMember -Function New-OpuAdbConnection
 
 Export-ModuleMember -Function Read-OpuBase64String
