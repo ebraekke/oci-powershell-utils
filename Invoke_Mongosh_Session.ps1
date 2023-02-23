@@ -15,16 +15,14 @@ OCID of Bastion with wich to create a session.
 .PARAMETER ConnectionId
 OCID of connection containing the details about the database system. 
 
-.PARAMETER TestOnly
-Set to $true to perform setup and teardown, but skip the start of sqlcl.
-Incurs a 30 second wait. 
+.PARAMETER ForceOutput
+Set to $true to perform current steps, which includes printing URL. 
+$false is default and causes process to stop.
 
 .EXAMPLE 
 ## Successfully invoking script and connecting to DB via bastion
 
 ## Invoking script without setting path to sqlcl (sql)
-
-## Invoking script with -TestOnly $true
 
 ## Invoking script and getting errors and you do not know why (tip: go off VPN)
 
@@ -35,7 +33,7 @@ param(
     [String]$BastionId, 
     [Parameter(Mandatory, HelpMessage='OCID of connection')]
     [String]$ConnectionId,
-    [Boolean]$TestOnly=$false
+    [Boolean]$ForceOutput=$false
 )
 
 ## START: generic section
@@ -48,6 +46,11 @@ Pop-Location
 ## END: generic section
 
 try {
+    if ($false -eq $ForceOutput) {
+        Out-Host -InputObject "ForceOutput must be true, exiting ..."
+        return $false
+    }
+  
     ## Make sure mongosh is within reach first
     Test-OpuMongoshAvailable
 
@@ -69,28 +72,28 @@ try {
     $localPort = $bastionSessionDescription.LocalPort
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
-
-    if ($true -eq $TestOnly) {
-        Out-Host -InputObject "DEBUG: Waiting in 30 secs while you check stuff ..."
-        Start-Sleep -Seconds 30
-        return $true
-    }
-  
     $urlEncodedPassword = [System.Web.HttpUtility]::UrlEncode($password)
 
     ## Stitch together a connection url for mongosh
     ## Use localhost, 127.0.0.1 will result in "MongoNetworkError: Client network socket disconnected before secure TLS connection was established"
-    $connUrl = "mongodb://${userName}:${urlEncodedPassword}@localhost:${localPort}/${userName}" + '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true'
+    
+    <#
+    # $preArgs = "--tls --tlsAllowInvalidCertificates "
+#   $paraUrl = '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true'
+#>
+    $hostUrl = "mongodb://${userName}:${urlEncodedPassword}@localhost:${localPort}/${userName}"
+    $paraUrl = '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true&tls=true&tlsAllowInvalidCertificates=true'
 
+    $connUrl = "${hostUrl}${paraUrl}"
     Out-Host -InputObject "Launching mongosh"
-    Out-Host -InputObject "mongosh --tls --tlsAllowInvalidCertificates '$connUrl'"
+    Out-Host -InputObject "CMD: mongosh --verbose `'${connUrl}`'"
 
-    ## TODO: Resolve challenge with quoting of parameter string
-    mongosh --tls --tlsAllowInvalidCertificates `"$connUrl`"
+    mongosh --verbose "${connUrl}"
 
+    $waitSeconds = 60
     if ($true) {
-        Out-Host -InputObject "DEBUG: Waiting in 60 secs while you check stuff ..."
-        Start-Sleep -Seconds 60    
+        Out-Host -InputObject "DEBUG: Waiting in $waitSeconds secs while you check stuff ..."
+        Start-Sleep -Seconds $waitSeconds
     }
 }
 catch {
