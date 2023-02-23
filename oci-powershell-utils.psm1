@@ -249,6 +249,13 @@ Local port to use for port forwarding.
 Defaults to 0, means that it will be randomly assigned.
 Error thrown if requesting a port number lower than 1024.  
 
+.PARAMETER WaitForConnectSeconds
+How many seconds to wait for connection to be established before returning. 
+Default 10.
+Needed because it takes some time from the session is created 
+until there is a path from the local port to the destination.
+VPNs tend to make this even slower.
+
 .EXAMPLE 
 ## Creating a forwarding session to the default port
 $bastion_session=New-OpuPortForwardingSessionFull -BastionId $bastion_ocid -TargetHost $target_ip
@@ -299,7 +306,9 @@ function New-OpuPortForwardingSessionFull {
         [String]$TargetHost,
         [Int32]$TargetPort=22,
         [Parameter(HelpMessage='Use this local port, 0 means assign')]
-        [Int32]$LocalPort=0
+        [Int32]$LocalPort=0,
+        [Parameter(HelpMessage='Seconds to wait before returing the session to the caller')]
+        [Int32]$WaitForConnectSeconds=10
     )
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
@@ -408,7 +417,12 @@ function New-OpuPortForwardingSessionFull {
             PublicKey = "${keyFile}.pub"
             LocalPort = $localPort
         }
-        
+
+        Out-Host -InputObject "Waiting until SSH tunnel is ready ($WaitForConnectSeconds seconds)"
+        Start-Sleep -Seconds $WaitForConnectSeconds
+
+        ## TODO: add delete of files here, stop returning file references!
+
         $localBastionSession
     } catch {
         ## Pass exception on back
@@ -508,14 +522,15 @@ return:
             TargetHost = $adb.PrivateEndpointip
             TargetPort = 1521
             ConnStr = $connStr
-            IsMongoApiEnabled = $isMongoApiEnabled
         }
 
 #>
 function New-OpuAdbConnection {
     param (
         [Parameter(Mandatory, HelpMessage='OCID of connection')]
-        [String]$ConnectionId
+        [String]$ConnectionId,
+        [Parameter(HelpMessage='Return as Mongodbapi connection')]
+        [bool]$AsMongoDbApi=$false
     )
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
@@ -559,12 +574,16 @@ function New-OpuAdbConnection {
         $fullConnStr = $adb.ConnectionStrings.Low
         $connStr =  $fullConnStr.Substring($fullConnStr.LastIndexOf("/") + 1)
 
-        # determine in mongoapi is enabled
-        if (1 -eq ($adb.DbToolsDetails | Where-Object {$_.IsEnabled -eq 'True'} | Where-Object {$_.Name -eq 'MongodbApi'}).Count) {
-            $isMongoApiEnabled = $true
+        ## determine if mongodbapi is requested and enabled
+        if ($true -eq $AsMongoDbApi) {
+            if (0 -eq ($adb.DbToolsDetails | Where-Object {$_.IsEnabled -eq 'True'} | Where-Object {$_.Name -eq 'MongodbApi'}).Count) {
+                throw "Mongodbapi is not enabled"
+            } else {
+                $targetPort = 27017
+            }
         } 
         else {
-            $isMongoApiEnabled = $false
+            $targetPort = 1521
         }
 
         ## Create return Object
@@ -572,9 +591,8 @@ function New-OpuAdbConnection {
             UserName = $connection.UserName
             PasswordBase64 = $secret.SecretBundleContent.Content
             TargetHost = $adb.PrivateEndpointip
-            TargetPort = 1521
+            TargetPort = $targetPort
             ConnStr = $connStr
-            IsMongoApiEnabled = $isMongoApiEnabled
         }
 
         $adbConnection
@@ -600,7 +618,7 @@ function Read-OpuBase64String {
     $ErrorActionPreference = "Stop" 
 
     try {
-    	[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($conn.PasswordBase64)) 
+    	[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($Base64String)) 
     } catch {
         ## Pass exception on back
         throw "Read-OpuBase64String: $_"

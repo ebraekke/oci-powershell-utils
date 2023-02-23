@@ -15,7 +15,7 @@ OCID of Bastion with wich to create a session.
 .PARAMETER ConnectionId
 OCID of connection containing the details about the database system. 
 
-.PARAMETER ForceOutput
+.PARAMETER CmdAsVerbose
 Set to $true to perform current steps, which includes printing URL. 
 $false is default and causes process to stop.
 
@@ -33,7 +33,8 @@ param(
     [String]$BastionId, 
     [Parameter(Mandatory, HelpMessage='OCID of connection')]
     [String]$ConnectionId,
-    [Boolean]$ForceOutput=$false
+    [Parameter(HelpMessage='Run mongosh in verbose mode')]
+    [bool]$CmdAsVerbose=$false
 )
 
 ## START: generic section
@@ -55,17 +56,13 @@ try {
     Test-OpuMongoshAvailable
 
     ## Grab connection
-    $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId
+    $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId -AsMongoDbApi $true
 
-    ## Assign to local variables for readability, note we are using the mongo port of 27017
+    ## Assign to local variables for readability, port magic handled in cmdlet
     $userName = $adbConnectionDescription.UserName
     $passwordBase64 = $adbConnectionDescription.PasswordBase64
     $targetHost = $adbConnectionDescription.TargetHost
-    $targetPort = "27017"
-
-    if ($false -eq $adbConnectionDescription.IsMongoApiEnabled) {
-        throw "MongoApi is not enabled"
-    }
+    $targetPort = $adbConnectionDescription.TargetPort
   
     ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
@@ -76,24 +73,17 @@ try {
 
     ## Stitch together a connection url for mongosh
     ## Use localhost, 127.0.0.1 will result in "MongoNetworkError: Client network socket disconnected before secure TLS connection was established"
-    
-    <#
-    # $preArgs = "--tls --tlsAllowInvalidCertificates "
-#   $paraUrl = '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true'
-#>
     $hostUrl = "mongodb://${userName}:${urlEncodedPassword}@localhost:${localPort}/${userName}"
-    $paraUrl = '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true&tls=true&tlsAllowInvalidCertificates=true'
+    $paraUrl = '?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true'
 
     $connUrl = "${hostUrl}${paraUrl}"
     Out-Host -InputObject "Launching mongosh"
-    Out-Host -InputObject "CMD: mongosh --verbose `'${connUrl}`'"
-
-    mongosh --verbose "${connUrl}"
-
-    $waitSeconds = 60
-    if ($true) {
-        Out-Host -InputObject "DEBUG: Waiting in $waitSeconds secs while you check stuff ..."
-        Start-Sleep -Seconds $waitSeconds
+ 
+    if ($true -eq $CmdAsVerbose) {
+        mongosh --verbose --tls --tlsAllowInvalidCertificates "${connUrl}"
+    }
+    else {
+        mongosh --tls --tlsAllowInvalidCertificates "${connUrl}"
     }
 }
 catch {
