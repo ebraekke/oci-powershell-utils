@@ -26,6 +26,16 @@ $false is default and causes process to stop.
 
 ## Invoking script and getting errors and you do not know why (tip: go off VPN)
 
+## Invoking script with a connection that has been deleted 
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -connectionId $adb_conn_ocid
+Getting details from connection
+Write-Error: Invoke_Sqlcl_Session.ps1: New-OpuAdbConnection: Get-OCIDatabasetoolsconnection: One or more errors occurred. (Failed to reach desired state.)
+
+## Invoking script without activating MongodbApi first
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -connectionId $adb_conn_ocid
+Getting details from connection
+Write-Error: Invoke_Mongosh_Session.ps1: New-OpuAdbConnection: MongodbApi is not enabled
+
 #>
 
 param(
@@ -56,7 +66,7 @@ try {
     Test-OpuMongoshAvailable
 
     ## Grab connection
-    $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId -AsMongoDbApi $true
+    $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId -AsMongodbApi $true
 
     ## Assign to local variables for readability, port magic handled in cmdlet
     $userName = $adbConnectionDescription.UserName

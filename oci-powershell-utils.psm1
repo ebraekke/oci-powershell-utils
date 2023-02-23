@@ -314,21 +314,24 @@ function New-OpuPortForwardingSessionFull {
     $ErrorActionPreference = "Stop" 
 
     try {
+        ## Validate input
+        if ((5 -gt $WaitForConnectSeconds) -or (60 -lt $WaitForConnectSeconds)) {
+            throw "WaitForConnectSeconds is ${WaitForConnectSeconds}: must to be between 5 and 60!"
+        }
+        ## Assign or verify LocalPort 
+        if (0 -eq $LocalPort) {
+            $LocalPort = Get-Random -Minimum 9001 -Maximum 9099
+        } elseif ($LocalPort -lt 1024) {
+            throw "LocalPort is ${LocalPort}: must be 1024 or greater!"
+        }
+
         ## check that mandatory sw is installed    
         Test-OpuSshAvailable
 
         Import-Module OCI.PSModules.Bastion
 
         $tmpDir = Get-TempDir
-
         $now = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
-
-        ## Assign or verify LocalPort 
-        if (0 -eq $LocalPort) {
-            $LocalPort = Get-Random -Minimum 9001 -Maximum 9099
-        } elseif ($LocalPort -lt 1024) {
-            throw "LocalPort cannot be less than 1024!"
-        }
 
         ## Generate ephemeral key pair in $tmpDir.  
         ## name: bastionkey-${now}.{localPort}
@@ -437,15 +440,30 @@ function New-OpuPortForwardingSessionFull {
 }
 
 <#
-return:
+.SYNOPSIS
+Create a MySQL connection object (hash) based on a ConnnectionId.
 
-        $mysqlConnection = [PSCustomObject]@{
-            UserName = $connection.UserName
-            PasswordBase64 = $secret.SecretBundleContent.Content
-            TargetHost = $mysqlDbSystem.IpAddress
-            TargetPort = $mysqlDbSystem.Port
-        }
+Return an object to the caller:
 
+$mysqlConnection = [PSCustomObject]@{
+    UserName = $connection.UserName
+    PasswordBase64 = $secret.SecretBundleContent.Content
+    TargetHost = $mysqlDbSystem.IpAddress
+    TargetPort = $mysqlDbSystem.Port
+}
+
+.DESCRIPTION
+By following the references on the connection object collect from both DB object and Secret in Vault:
+* Username
+* Base64 encoded password
+* Private ip of service
+* Port of service
+
+.PARAMETER ConnectionId
+OCID of connection containing the details about the database system and user. 
+
+
+.EXAMPLE 
 
 #>
 function New-OpuMysqlConnection {
@@ -514,23 +532,46 @@ function New-OpuMysqlConnection {
 }
 
 <#
-return:
+.SYNOPSIS
+Create an Autonomous Database connection object (hash) based on a ConnnectionId.
 
-        $adbConnection = [PSCustomObject]@{
-            UserName = $connection.UserName
-            PasswordBase64 = $secret.SecretBundleContent.Content
-            TargetHost = $adb.PrivateEndpointip
-            TargetPort = 1521
-            ConnStr = $connStr
-        }
+Return an object to the caller:
+
+$adbConnection = [PSCustomObject]@{
+    UserName = $connection.UserName
+    PasswordBase64 = $secret.SecretBundleContent.Content
+    TargetHost = $adb.PrivateEndpointip
+    TargetPort = 1521 or 27071
+    ConnStr = $connStr
+}
+
+.DESCRIPTION
+By following the references on the connection object collect from both DB object and Secret in Vault:
+* Username
+* Base64 encoded password
+* Private ip of service
+* Port of service, that is 1521 if a regular connection 27071 if a momgdbapi connection
+* connection string or tns alias
+
+.PARAMETER ConnectionId
+OCID of connection containing the details about the database  and user. 
+
+.PARAMETER AsMongodbApi
+Return connection object as a Mongoapi compatible object. 
+This results in validation of the dbToolsDetails array.  
+There neds to be one entry with value of ["MongodbApi", "True"] in this collection for the process to proceed.  
+Also, port number 27017 is returned as opposed to the default of 1521. 
+
+.EXAMPLE 
 
 #>
+
 function New-OpuAdbConnection {
     param (
         [Parameter(Mandatory, HelpMessage='OCID of connection')]
         [String]$ConnectionId,
-        [Parameter(HelpMessage='Return as Mongodbapi connection')]
-        [bool]$AsMongoDbApi=$false
+        [Parameter(HelpMessage='Return as MongodbApi connection')]
+        [bool]$AsMongodbApi=$false
     )
     $userErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Stop" 
@@ -577,7 +618,7 @@ function New-OpuAdbConnection {
         ## determine if mongodbapi is requested and enabled
         if ($true -eq $AsMongoDbApi) {
             if (0 -eq ($adb.DbToolsDetails | Where-Object {$_.IsEnabled -eq 'True'} | Where-Object {$_.Name -eq 'MongodbApi'}).Count) {
-                throw "Mongodbapi is not enabled"
+                throw "MongodbApi is not enabled"
             } else {
                 $targetPort = 27017
             }
@@ -609,29 +650,6 @@ function New-OpuAdbConnection {
     }
 }
 
-function Read-OpuBase64String {
-    param (
-        [Parameter(Mandatory, HelpMessage='Base64 encoded string')]
-        [String]$Base64String
-    )
-    $userErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = "Stop" 
-
-    try {
-    	[Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($Base64String)) 
-    } catch {
-        ## Pass exception on back
-        throw "Read-OpuBase64String: $_"
-    } 
-    finally {
-        ## To Maximize possible clean ups, continue on error 
-        $ErrorActionPreference = "Continue"
-    
-        ## Done, restore settings
-        $ErrorActionPreference = $userErrorActionPreference
-    }
-}
-
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
 Export-ModuleMember -Function Test-OpuSqlclAvailable
@@ -642,5 +660,3 @@ Export-ModuleMember -Function Remove-OpuPortForwardingSessionFull
 
 Export-ModuleMember -Function New-OpuMysqlConnection
 Export-ModuleMember -Function New-OpuAdbConnection
-
-Export-ModuleMember -Function Read-OpuBase64String
