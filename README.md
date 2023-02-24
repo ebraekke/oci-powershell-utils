@@ -17,6 +17,8 @@ These highlight how a secure channel can be created via Bastion and then utilize
 
 Take a look at this [short video](https://github.com/ebraekke/oci-powershell-utils/issues/3#issue-1576272843) to see `Invoke_Sqlcl_Session.ps1` in action.
 
+[Here](doc/roadmap.md) is a brief outline of the plans for this project going forward. 
+
 ## Get up and running quickly
 
 For ssh sessions all you need is the ssh binaries in your environment.   

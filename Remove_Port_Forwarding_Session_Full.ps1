@@ -3,7 +3,7 @@
 Removes all traces of previously created "full session", that is Bastion session, SSH process and ephemeral key pair. 
 
 .DESCRIPTION
-The SSH process, the ephemeral key pair and then finally teh bastion session are destroyed. 
+The SSH process, the ephemeral key pair and then finally the bastion session are destroyed. 
 Process will will continue if a failure happens.
 File deletion failures are silent, you need to add debugging to get output.  
 Output related to the bastion session deletion will be displayed. 
