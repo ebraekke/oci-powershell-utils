@@ -151,8 +151,6 @@ Output related to the bastion session deletion will be displayed.
 $BastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
-    PrivateKey = $keyFile
-    PublicKey = "${keyFile}.pub"
     LocalPort = $localPort
 }
  
@@ -191,13 +189,6 @@ function Remove-OpuPortForwardingSessionFull {
         ## Kill SSH process
         Stop-Process -InputObject $BastionSessionDescription.SshProcess -ErrorAction SilentlyContinue
     
-        ## TODO: make this parameter driven in case of debug needs
-        ## Delete the ephemeral keys, don't output errors 
-        $ErrorActionPreference = 'SilentlyContinue' 
-        Remove-Item $BastionSessionDescription.PrivateKey -ErrorAction SilentlyContinue
-        Remove-Item $BastionSessionDescription.PublicKey -ErrorAction SilentlyContinue
-        $ErrorActionPreference = "Continue"
-
         ## Kill Bastion session, with Force, ignore output and error (it is the work request id)
         try {
             Remove-OCIBastionSession -SessionId $BastionSessionDescription.BastionSession.Id -Force -ErrorAction Ignore | Out-Null            
@@ -223,8 +214,6 @@ Return an object to the caller:
 $bastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
-    PrivateKey = $keyFile
-    PublicKey = "${keyFile}.pub"
     LocalPort = $localPort
 }
         
@@ -420,8 +409,6 @@ function New-OpuPortForwardingSessionFull {
         $localBastionSession = [PSCustomObject]@{
             BastionSession = $bastionSession
             SShProcess = $sshProcess
-            PrivateKey = $keyFile
-            PublicKey = "${keyFile}.pub"
             LocalPort = $localPort
         }
 
@@ -437,7 +424,13 @@ function New-OpuPortForwardingSessionFull {
     } finally {
         ## To Maximize possible clean ups, continue on error 
         $ErrorActionPreference = "Continue"
-        
+
+        ## Delete the files, they are not needed 
+        $ErrorActionPreference = 'SilentlyContinue' 
+        Remove-Item $keyFile -ErrorAction SilentlyContinue
+        Remove-Item "${keyFile}.pub" -ErrorAction SilentlyContinue
+        $ErrorActionPreference = "Continue"
+    
         ## Done, restore settings
         $ErrorActionPreference = $userErrorActionPreference
     }
@@ -654,6 +647,7 @@ function New-OpuAdbConnection {
     }
 }
 
+Export-ModuleMember -Function Get-TempDir
 Export-ModuleMember -Function Test-OpuSshAvailable
 Export-ModuleMember -Function Test-OpuMysqlshAvailable
 Export-ModuleMember -Function Test-OpuSqlclAvailable
