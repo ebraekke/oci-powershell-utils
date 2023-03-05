@@ -355,8 +355,12 @@ function New-OpuPortForwardingSessionFull {
     
         Out-Host -InputObject "Creating Port Forwarding Session to ${TargetHost}:${TargetPort}"
 
-        ## Get Bastion object, use MaxSessionTtlInSeconds
-        $bastionService         = Get-OCIBastion -BastionId $BastionId
+        try {
+            $bastionService = Get-OCIBastion -BastionId $BastionId  -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIBastion: $_"
+        }    
         $maxSessionTtlInSeconds = $bastionService.MaxSessionTtlInSeconds
 
         ## Details of target
