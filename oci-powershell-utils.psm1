@@ -379,7 +379,7 @@ function New-OpuPortForwardingSessionFull {
     
         Out-Host -InputObject "Waiting for creation of bastion session to complete"
         try {
-            $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active, Failed -ErrorAction Stop 
+            $bastionSession = Get-OCIBastionSession -SessionId $bastionSession.Id -WaitForLifecycleState Active  -ErrorAction Stop 
         }
         catch {
             throw "Get-OCIBastionSession: $_"
@@ -412,7 +412,7 @@ function New-OpuPortForwardingSessionFull {
             LocalPort = $localPort
         }
 
-        Out-Host -InputObject "Waiting until SSH tunnel is ready ($WaitForConnectSeconds seconds)"
+        Out-Host -InputObject "Waiting for creation of SSH tunnel to complete"
         Start-Sleep -Seconds $WaitForConnectSeconds
 
         ## TODO: add delete of files here, stop returning file references!
