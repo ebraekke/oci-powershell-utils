@@ -70,7 +70,7 @@ try {
     ## check that mandatory sw is installed    
     Test-OpuSshAvailable
     ## END: generic section
-    
+
     if ($IsMacOS) {
         throw "Invoke_Ssh_session.ps1: Platform not supported!"
     }
@@ -108,6 +108,11 @@ try {
     ssh-keygen -y -f ($sshKey.Replace("~", $HOME)) | Out-Null
     if ($false -eq $?) {
         throw "SecretId points to a invalid private SSH key"
+    }
+
+    ## Make sure to set as RO 
+    if ($IsLinux) {
+        chmod 0400 $sshKey
     }
 
     ## NOTE 1: 'localhost' and not '127.0.0.1'
