@@ -104,15 +104,15 @@ try {
         throw "New-Item: $_"
     }
 
+    ## Make sure to set as rw for owner 
+    if ($IsLinux) {
+        chmod 0600 $sshKey
+    }
+
     Out-Host -InputObject "Validating downloaded SSH key"
     ssh-keygen -y -f ($sshKey.Replace("~", $HOME)) | Out-Null
     if ($false -eq $?) {
         throw "SecretId points to a invalid private SSH key"
-    }
-
-    ## Make sure to set as RO 
-    if ($IsLinux) {
-        chmod 0400 $sshKey
     }
 
     ## NOTE 1: 'localhost' and not '127.0.0.1'
