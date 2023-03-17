@@ -3,7 +3,7 @@
 Removes all traces of previously created "full session", that is Bastion session, SSH process and ephemeral key pair. 
 
 .DESCRIPTION
-The SSH process, the ephemeral key pair and then finally teh bastion session are destroyed. 
+The SSH process, the ephemeral key pair and then finally the bastion session are destroyed. 
 Process will will continue if a failure happens.
 File deletion failures are silent, you need to add debugging to get output.  
 Output related to the bastion session deletion will be displayed. 
@@ -50,14 +50,12 @@ Import-Module './oci-powershell-utils.psm1'
 Pop-Location
 
 try {
-    ## Request cleanup 
+    ## Request cleanup, this will always "SUCCED", that is continue to tear down until all avenues have been explored  
     Remove-OpuPortForwardingSessionFull -BastionSessionDescription $BastionSessionDescription
 
-    $true
 }
 catch {
-    ## What else can we do? 
-    Write-Error "Error: $_"
+    Write-Error "Remove_Port_Forwarding_Session_Full.ps1: $_"
     return $false
 }
 finally {
@@ -72,6 +70,3 @@ finally {
     ## Done, restore settings
     $ErrorActionPreference = $userErrorActionPreference
 }
-
-
-

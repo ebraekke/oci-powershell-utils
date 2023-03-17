@@ -41,16 +41,11 @@ Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
 Version 19.18.0.1.0
 
 SQL>
+
 ## Invoking script without setting path to sqlcl (sql)
 .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid
 Write-Error: sql not found
-Remove-OpuPortForwardingSessionFull: C:\Users\espenbr\GitHub\oci-powershell-utils\Invoke_Sqlcl_Session.ps1:129
-Line |
- 129 |  … dingSessionFull -BastionSessionDescription $bastionSessionDescription
-     |                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~
-     | Cannot bind argument to parameter 'BastionSessionDescription' because it is null.
 Write-Error: Error: sqlcl not properly installed
-
 
 ## Invoking script with -TestOnly $true
 ❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $conn_ocid -TestOnly $true
@@ -61,6 +56,24 @@ Waiting for creation of bastion session to complete
 Creating SSH tunnel
 DEBUG: Waiting in 30 secs while you check stuff ...
 True
+
+## Invoking script and getting errors and you do not know why (tip: go off VPN)
+❯ .\Invoke_Sqlcl_Session.ps1 -BastionId $bastion_ocid -ConnectionId $adb_conn_ocid
+Getting details from connection
+Creating ephemeral key pair
+Creating Port Forwarding Session to 10.0.1.51:1521
+Waiting for creation of bastion session to complete
+Creating SSH tunnel
+Launching SQLcl
+
+
+SQLcl: Release 22.2 Production on Thu Feb 09 07:40:57 2023
+
+Copyright (c) 1982, 2023, Oracle.  All rights reserved.
+
+  USER          = admin
+  URL           = jdbc:oracle:thin:@tcps://127.0.0.1:9066/hikomo1xnp7z6id_myadb_low.adb.oraclecloud.com?ssl_server_dn_match=off
+  Error Message = IO Error: The Network Adapter could not establish the connection (CONNECTION_ID=sh9DeAMwS9alZ/4KpbQ2DQ==)
 #>
 
 param(
@@ -81,44 +94,22 @@ Pop-Location
 ## END: generic section
 
 try {
-    ## START: generic section
-    ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
-    ## END: generic section
+    ## Make sure sqlcl is within reach first
+    Test-OpuSqlclAvailable
 
-    ## Make sure mysqlsh is within reach first
-    if ($false -eq (Test-OpuSqlclAvailable)) {
-        throw "sqlcl not properly installed"
-    }
+    ## Grab connection
+    $adbConnectionDescription = New-OpuAdbConnection -ConnectionId $ConnectionId
 
-    ## Import the modules needed here
-    Import-Module OCI.PSModules.Database
-    Import-Module OCI.PSModules.Databasetools
-    Import-Module OCI.PSModules.Secrets
-
-    Out-Host -InputObject "Getting details from connection"
-    ## Grab main handle
-    $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
-
-    ## Get adb, service_name and secret based on handle
-    $adb = Get-OCIDatabaseAutonomousDatabase -AutonomousDatabaseId $connection.RelatedResource.Identifier
-    $fullConnStr = $adb.ConnectionStrings.Low
-    $connStr =  $fullConnStr.Substring($fullConnStr.LastIndexOf("/") + 1)
-    $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId
- 
     ## Assign to local variables for readability
-    $userName = $connection.UserName
-    $passwordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
-    $targetHost = $adb.PrivateEndpointip
-    $targetPort = 1521
+    $userName = $adbConnectionDescription.UserName
+    $passwordBase64 = $adbConnectionDescription.PasswordBase64
+    $targetHost = $adbConnectionDescription.TargetHost
+    $targetPort = $adbConnectionDescription.TargetPort
+    $connStr = $adbConnectionDescription.ConnStr
   
-    ## START: generic section
-    ## Create session and process, get information in custom object -- see below
-    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
+    ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
+    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
     $localPort = $bastionSessionDescription.LocalPort
-    ## END: generic section
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
 
@@ -132,8 +123,8 @@ try {
     sql -L ${userName}/${password}@tcps://127.0.0.1:${localPort}/${connStr}?ssl_server_dn_match=off
 }
 catch {
-    ## What else can we do? 
-    Write-Error "Error: $_"
+    ## What else can we do?
+    Write-Error "Invoke_Sqlcl_Session.ps1: $_"
     return $false
 }
 finally {
@@ -141,10 +132,12 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    ## Request cleanup 
-    Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    ## Request cleanup if session object has been created
+    if ($null -ne $bastionSessionDescription) {
+        Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    }
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location

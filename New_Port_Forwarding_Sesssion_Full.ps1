@@ -49,7 +49,9 @@ param(
     [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,
     [Parameter(HelpMessage='Port at Target host')]
-    [Int32]$TargetPort=22
+    [Int32]$TargetPort=22,
+    [Parameter(HelpMessage='Use this local port, 0 means assign')]
+    [Int32]$LocalPort=0
 )
 
 $UserErrorActionPreference = $ErrorActionPreference
@@ -66,7 +68,7 @@ try {
     }
     
     ## Create session and process, get information in custom object -- return below
-    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
+    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort $LocalPort
 
     $bastionSessionDescription
 }

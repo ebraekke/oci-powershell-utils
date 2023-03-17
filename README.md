@@ -10,10 +10,14 @@ Key services used: Bastion and Database Tools in addition to MySQL and Autonomou
 There are three main scripts: 
 
 * `Invoke_Ssh_Session.ps1` invokes an ssh session via a Bastion.
-* `Invoke_Mysqlsh_Session.ps1` invokes a mysqlsh via a Bastion.
-* `Invoke_Sqlcl_Session.ps1` invokes sqlcl via Bastion.
+* `Invoke_Mysqlsh_Session.ps1` invokes a mysqlsh session via a Bastion.
+* `Invoke_Sqlcl_Session.ps1` invokes a sqlcl session via Bastion.
 
 These highlight how a secure channel can be created via Bastion and then utilized by another process.
+
+Take a look at this [short video](https://github.com/ebraekke/oci-powershell-utils/issues/3#issue-1576272843) to see `Invoke_Sqlcl_Session.ps1` in action.
+
+[Here](doc/roadmap.md) is a brief outline of the plans for this project going forward. 
 
 ## Get up and running quickly
 
@@ -35,7 +39,7 @@ The `Invoke_*.ps1` scripts have the same structure:
     * Create Bastion session
     * Create SSH port forwarding session 
     * Return object containing information abt Bastion session, SSH process, SSH keys and  Local port 
-* Create the specific (interactive) session (SSH, mysqlsh, etc) trough the Local Port retuned by cmdlet
+* Create the specific (interactive) session (SSH, mysqlsh, etc) trough the Local Port returned by cmdlet
     * Wait for completion
 * Request teardown via cmdlet `Remove-OpuPortForwardingSessionFull`
 
@@ -77,11 +81,13 @@ But, for now I short-circuit and fail on purpose if you try to run on Mac or Lin
 
 ## Why not managed SSH session? 
 
-I have decided to (only) use port forwarding for two reasons: 
+I have decided to (only) use port forwarding for few reasons: 
 
 1. Simplicity: To create a session to a service endpoint, for instance a database listener, port forwarding is the only option. So I decided to keep it DRY (Don't Repeat Yourself). 
 
 2. Managed SSH sessions requires that an agent is activated on the target. This agent is not always present. In some instances the agent may not be available. This was the case initially with Ubuntu on ARM for example.  
+
+3. We have seen examples of the agent starting up much later than the compute node. For DevOps scenarios where resources are created -- typically via Terraform -- and then modified via something like Ansible, Managed SSH sessions does not currently seem to be a good fit.      
 
 ## Why PowerShell?
 

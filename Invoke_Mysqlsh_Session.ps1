@@ -82,42 +82,21 @@ Pop-Location
 ## END: generic section
 
 try {
-    ## START: generic section
-    ## check that mandatory sw is installed    
-    if ($false -eq (Test-OpuSshAvailable)) {
-        throw "SSH not properly installed"
-    }
-    ## END: generic section
-
     ## Make sure mysqlsh is within reach first
-    if ($false -eq (Test-OpuMysqlshAvailable)) {
-        throw "Mysqlsh not properly installed"
-    }
+    Test-OpuMysqlshAvailable
 
-    ## Import the modules needed here
-    Import-Module OCI.PSModules.Mysql
-    Import-Module OCI.PSModules.Databasetools
-    Import-Module OCI.PSModules.Secrets
+    ## Grab connection
+    $mysqlConnectionDescription = New-OpuMysqlConnection -ConnectionId $ConnectionId
 
-    Out-Host -InputObject "Getting details from connection"
-    ## Grab main handle
-    $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId
-
-    ## Get db system and secret based on handle
-    $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier
-    $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId
- 
     ## Assign to local variables for readability
-    $userName = $connection.UserName
-    $passwordBase64 = (Get-OCISecretsSecretBundle -SecretId $Secret.SecretId).SecretBundleContent.Content
-    $targetHost = $mysqlDbSystem.IpAddress
-    $targetPort = $mysqlDbSystem.Port
+    $userName = $mysqlConnectionDescription.UserName
+    $passwordBase64 = $mysqlConnectionDescription.PasswordBase64
+    $targetHost = $mysqlConnectionDescription.TargetHost
+    $targetPort = $mysqlConnectionDescription.TargetPort
   
-    ## START: generic section
-    ## Create session and process, get information in custom object -- see below
-    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort
+    ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
+    $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
     $localPort = $bastionSessionDescription.LocalPort
-    ## END: generic section
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
 
@@ -128,11 +107,11 @@ try {
     }
     
     Out-Host -InputObject "Launching mysqlsh"
-    mysqlsh -u $userName -h 127.0.0.1 --port=$localPort --password=$password
+    mysqlsh --sql -u $userName -h 127.0.0.1 --port=$localPort --password=$password
 }
 catch {
     ## What else can we do? 
-    Write-Error "Error: $_"
+    Write-Error "Invoke_Mysqlsh_Session.ps1: $_"
     return $false
 }
 finally {
@@ -140,10 +119,12 @@ finally {
     ## To Maximize possible clean ups, continue on error 
     $ErrorActionPreference = "Continue"
     
-    ## Request cleanup 
-    Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    ## Request cleanup if session object has been created
+    if ($null -ne $bastionSessionDescription) {
+        Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
+    }
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location
