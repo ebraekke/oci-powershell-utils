@@ -19,6 +19,10 @@ Take a look at this [short video](https://github.com/ebraekke/oci-powershell-uti
 
 [Here](doc/roadmap.md) is a brief outline of the plans for this project going forward. 
 
+## Potential challenges 
+
+Check out the [troubleshooting section](doc/troubleshooting.md) for tips on resolving errors.
+
 ## Get up and running quickly
 
 For ssh sessions all you need is the ssh binaries in your environment.   
