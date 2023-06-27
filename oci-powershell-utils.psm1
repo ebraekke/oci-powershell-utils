@@ -486,6 +486,88 @@ function New-OpuMysqlConnection {
         catch {
             throw "Get-OCIDatabasetoolsconnection: $_"
         }
+        ## Get secret (read password) from connection handle
+        try {
+            $secret = Get-OCISecretsSecretBundle -SecretId $connection.UserPassword.SecretId -Stage Current -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCISecretsSecretBundle: $_"
+        }
+
+        if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
+            try {
+                
+                ## mysql://targethost:targetport
+
+                Out-Host -InputObject "Warning: Not a managed service, cannot validate lifecycle state!"
+
+                $connString= $connection.ConnectionString
+                $parts = $connString.Split('://')
+                $details = $parts[1].Split(':')
+
+                $targetHost = $details[0]
+                $targetPort = $details[1]
+            } catch {
+                throw "Grabbing parts of the connection string for IaaS based MySQL"
+            }
+        } else {
+    
+            ## Grab mysql db system info based on conn handle, ensure it is in correct lifecycle state
+            try {
+                $mysqlDbSystem = Get-OCIMysqlDbSystem -DbSystemId $connection.RelatedResource.Identifier  -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+                $targetHost = $mysqlDbSystem.IpAddress
+                $targetPort = $mysqlDbSystem.Port    
+            } 
+            catch {
+                throw "Get-OCIMysqlDbSystem: $_"
+            }
+        }
+
+        ## Create return Object
+        $mysqlConnection = [PSCustomObject]@{
+            UserName = $connection.UserName
+            PasswordBase64 = $secret.SecretBundleContent.Content
+            TargetHost = $targetHost
+            TargetPort = $targetPort
+        }
+
+        $mysqlConnection
+ 
+    } catch {
+        ## Pass exception on back
+        throw "New-OpuMysqlConnection: $_"
+    } finally {
+        ## To Maximize possible clean ups, continue on error 
+        $ErrorActionPreference = "Continue"
+    
+        ## Done, restore settings
+        $ErrorActionPreference = $userErrorActionPreference
+    }
+}
+
+function New-OpuMysqlConnectionX {
+    param (
+        [Parameter(Mandatory, HelpMessage='OCID of connection')]
+        [String]$ConnectionId
+    )
+    $userErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Stop" 
+
+    try {
+        ## Import the modules needed here
+        Import-Module OCI.PSModules.Mysql
+        Import-Module OCI.PSModules.Databasetools
+        Import-Module OCI.PSModules.Secrets
+
+        Out-Host -InputObject "Getting details from connection"
+
+        ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
+        try {
+            $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIDatabasetoolsconnection: $_"
+        }
         if ("Mysqldbsystem" -ne $connection.RelatedResource.EntityType) {
             throw "Connection does not point to a MySQL database system"
         }
