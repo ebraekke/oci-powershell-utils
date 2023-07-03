@@ -175,7 +175,7 @@ Line |
 
 function Remove-OpuPortForwardingSessionFull {
     param (
-        [Parameter(Mandatory,HelpMessage='Full Bastion Session Description Object')]
+        [Parameter(Mandatory,HelpMessage='Full Bastion Port Forwarding Session Description Object')]
         $BastionSessionDescription
     )
 
@@ -254,8 +254,6 @@ Waiting for creation of bastion session to complete
 $bastion_session
 BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
-PrivateKey     : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_43_21-9084
-PublicKey      : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_43_21-9084.pub
 LocalPort      : 9084
 
 
@@ -275,8 +273,6 @@ Waiting for creation of bastion session to complete
 $bastion_session
 BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
-PrivateKey     : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_46_54-9374
-PublicKey      : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_46_54-9374.pub
 LocalPort      : 9374
 
 
@@ -414,8 +410,6 @@ function New-OpuPortForwardingSessionFull {
 
         Out-Host -InputObject "Waiting for creation of SSH tunnel to complete"
         Start-Sleep -Seconds $WaitForConnectSeconds
-
-        ## TODO: add delete of files here, stop returning file references!
 
         $localBastionSession
     } catch {
