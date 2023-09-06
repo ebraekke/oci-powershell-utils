@@ -657,7 +657,7 @@ function New-OpuAdbConnection {
     
         Out-Host -InputObject "Getting details from connection"
 
-        ## Grab main handle, ensure it is in correct lifecycle state and that it points to a mysql db system
+        ## Grab main handle, ensure it is in correct lifecycle state and that it points to an ADB
         try {
             $connection = Get-OCIDatabasetoolsconnection -DatabaseToolsconnectionId $connectionId -WaitForLifecycleState Active -WaitIntervalSeconds 0 -ErrorAction Stop
         }
