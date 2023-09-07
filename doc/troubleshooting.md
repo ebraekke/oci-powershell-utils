@@ -14,10 +14,10 @@ The port forwarding process may fail if there is not a proper entry for the bast
 I collect this information by manually creating a port forwarding session and ensuring that I save the 
 fingerprint to my `~/.ssh/known_hosts` file.
 
-As of 5th of April 2023 these are the settings I use for FRA (Frankfurt) and ARN (Stockholm): 
+As of the 7th of September 2023 these are the settings that I use for FRA (Frankfurt) and ARN (Stockholm): 
 ```
 host.bastion.eu-stockholm-1.oci.oraclecloud.com,129.149.83.110 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMZtuRdd/IgT4/chkaG7s123h6U16MkbG/IUWev9e/DEOno3swbYy7EfmO3nlhf4/rHKKVU7wxYSsjMzH9OnYL43ln/DyaT1ROxIaSMJsckGfo20kfbvfKs+LEGD0Qz0FZIfDPl2P1J6iQH80DHPntMkS2HnSk/xO7BhFqkZ1XbuthZ6RKbRbKM7dTbXr1Q+O4EGfM/JcwCeZvIgf1nr/Gw7zLLBqYqnOuLfxMdnptzZoOWKD0dlY8GWuIPxepN0QFKrOS8/GSIL49EOo7CRPatvXtrbzBX4MI+je/hJVZf1aonvmEA7Q0q2nAI8+jboJkYIZv5Xw7Yo3aAt2ZRzTh
-host.bastion.eu-frankfurt-1.oci.oraclecloud.com,138.1.40.158 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqnxXAAdFhIdgPepPUcKbBfMU9CX0b546OhxAamNzo7E0Bp+mdSR191/Cvx97dccsi2R/ijL7FSg2c/FnNqOqo8VGjT+uXPCnS2YIGTdlA0u9UsnW+wGKbDhmyhncHHGr7heAax5ic0C1iE4HUVhDHb2+LbBQK7xcigoO+7Bshj9/4obQsnuxNZyLE3badwDEDgHJ9xbtmdXU93CzSHWgzZdwEWb2wSPLKPzrUTIZg7JvH/SpMdqZ2yoDdXI6nG+7ZnypanMpZMrbIpaz68PP+Q4EoY2ojKW8WnoL+pxK5cXzY182DCSAAf1QXAVX38dDnCmU0S52VpoI+O6xiqi0T
+host.bastion.eu-frankfurt-1.oci.oraclecloud.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqnxXAAdFhIdgPepPUcKbBfMU9CX0b546OhxAamNzo7E0Bp+mdSR191/Cvx97dccsi2R/ijL7FSg2c/FnNqOqo8VGjT+uXPCnS2YIGTdlA0u9UsnW+wGKbDhmyhncHHGr7heAax5ic0C1iE4HUVhDHb2+LbBQK7xcigoO+7Bshj9/4obQsnuxNZyLE3badwDEDgHJ9xbtmdXU93CzSHWgzZdwEWb2wSPLKPzrUTIZg7JvH/SpMdqZ2yoDdXI6nG+7ZnypanMpZMrbIpaz68PP+Q4EoY2ojKW8WnoL+pxK5cXzY182DCSAAf1QXAVX38dDnCmU0S52VpoI+O6xiqi0T
 ```
 
 ## Key exchange errors
@@ -38,6 +38,11 @@ You may need one entry like this for each region if you experience similar probl
 # Also based on doc:
 # https://docs.oracle.com/en-us/iaas/Content/Bastion/Tasks/troubleshooting_connect_session_failed.htm
 host host.bastion.eu-frankfurt-1.oci.oraclecloud.com
+        HostKeyAlgorithms +ssh-rsa
+        PubkeyAcceptedKeyTypes +ssh-rsa
+        ServerAliveInterval 120
+        ServerAliveCountMax 3
+host host.bastion.eu-stockholm-1.oci.oraclecloud.com
         HostKeyAlgorithms +ssh-rsa
         PubkeyAcceptedKeyTypes +ssh-rsa
         ServerAliveInterval 120
