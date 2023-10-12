@@ -19,6 +19,12 @@ Take a look at this [short video](https://github.com/ebraekke/oci-powershell-uti
 
 [Here](doc/roadmap.md) is a brief outline of the plans for this project going forward. 
 
+## Please be aware 
+
+In its current incarnation I create the ssh tunnel with `-o StrictHostKeyChecking=no`. 
+I started doing this after Oracle rotated the host keys. 
+The code for this can be found in `function New-OpuPortForwardingSessionFull` in oci-powershell-utils.psm1.
+
 ## Potential challenges 
 
 Check out the [troubleshooting section](doc/troubleshooting.md) for tips on resolving errors.

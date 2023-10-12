@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+Enable the MongoApi on a specific Autonomous Database (ADB).
+
+.DESCRIPTION
+. 
+
+.PARAMETER AdbId
+OCID of database where you want to enable MongoApi. 
+ 
+.EXAMPLE 
+## Succesfully invoking the script 
+
+## Invoking the script with an invalid ADB ocid
+❯ .\Enable_Mongoapi.ps1 -AdbId "xyz"
+Write-Error: Enable_Mongoapi.ps1: Get-OCIDatabaseAutonomousDatabase: One or more errors occurred. (Authorization failed or requested resource not found.)
+
+#>
 
 param(
     [Parameter(Mandatory, HelpMessage='OCID of ADB')]

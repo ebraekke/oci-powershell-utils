@@ -9,6 +9,9 @@ Please ensure that you can establish port forwarding sessions to your desired ba
 
 ## Make sure ~/.ssh/known_hosts includes the bastion service endpoints you will be using
 
+See README.doc for comment on `-o StrictHostKeyChecking=no`. 
+Assuming you don't remove this from the code, this section should not be relevant for you. 
+
 The port forwarding process may fail if there is not a proper entry for the bastion endpoint for the specific region.  
 
 I collect this information by manually creating a port forwarding session and ensuring that I save the 

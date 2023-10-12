@@ -381,11 +381,21 @@ function New-OpuPortForwardingSessionFull {
             throw "Get-OCIBastionSession: $_"
         }
 
-        ## Create ssh command argument string with relevant parameters
+        ## Create ssh command argument
         $sshArgs = $bastionSession.SshMetadata["command"]
+
+        ## First clean up any comments from Oracle(!)
+        $hashpos = $sshArgs.IndexOf('#')
+        if ($hash -gt 0) {
+	        $strlen = $sshArgs.length
+	        $sshArgs = $sshArgs.Remove($hashpos, $strlen-$hashpos)
+        }
+
+        ## Supply relevant parameters
         $sshArgs = $sshArgs.replace("ssh",          "-4")    ## avoid "bind: Cannot assign requested address" 
         $sshArgs = $sshArgs.replace("<privateKey>", $keyFile)
         $sshArgs = $sshArgs.replace("<localPort>",  $localPort)
+        $sshArgs += " -o StrictHostKeyChecking=no"
 
         Write-Debug "CONN: ssh ${sshArgs}"
         
@@ -691,7 +701,7 @@ function New-OpuAdbConnection {
         ## determine if mongodbapi is requested and enabled
         if ($true -eq $AsMongoDbApi) {
             if (0 -eq ($adb.DbToolsDetails | Where-Object {$_.IsEnabled -eq 'True'} | Where-Object {$_.Name -eq 'MongodbApi'}).Count) {
-                throw "MongodbApi is not enabled"
+                throw "MongodbApi is not enabled for this ADB"
             } else {
                 $targetPort = 27017
             }
