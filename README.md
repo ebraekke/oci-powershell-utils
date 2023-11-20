@@ -79,7 +79,7 @@ Pass the object returned by `New_Port_Forwarding_Sesssion_Full.ps1` as parameter
 
 The following software must be installed in your environment: 
 
-* OCI PowerShell Modules
+* [OCI PowerShell Modules](doc/powershell_modules.md) 
 * OpenSSH binaries
 * Mysqlsh (for Invoke_Mysqlsh_Session.ps1)
 * Sql (AKA sqlcl for Invoke_Sqlcl.ps1)
@@ -98,6 +98,7 @@ I have decided to (only) use port forwarding for few reasons:
 2. Managed SSH sessions requires that an agent is activated on the target. This agent is not always present. In some instances the agent may not be available. This was the case initially with Ubuntu on ARM for example.  
 
 3. We have seen examples of the agent starting up much later than the compute node. For DevOps scenarios where resources are created -- typically via Terraform -- and then modified via something like Ansible, Managed SSH sessions does not currently seem to be a good fit.      
+TODO: This is due to the startup time of the agent and how Cloud Init works. Need to clean up the explanation.  
 
 ## Why PowerShell?
 
