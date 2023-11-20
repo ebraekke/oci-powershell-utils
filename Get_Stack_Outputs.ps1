@@ -23,7 +23,54 @@ try {
             throw "Get-OCIResourcemanagerStack: $_"
         }
 
-        $stack
+        ## Get respurce handle and see if there are any ... 
+        try {
+            $resourceList = Get-OCIResourcemanagerStackAssociatedResourcesList -StackId $stack_ocid -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIResourcemanagerStackAssociatedResourcesList: $_"
+        }
+        if (0 -eq $resourceList.Items.Count) {
+            throw "Get-OCIResourcemanagerStackAssociatedResourcesList: Found no resources for this stack"
+        }
+
+        ## Get reverse sorted list of Jobs, i.e. most recent first 
+        try {
+            $jobList = Get-OCIResourcemanagerJobsList -StackId $stack_ocid -LifecycleState Succeeded -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIResourcemanagerJobsList: $_"
+        }
+
+        ## Traverse list to find latest (highest in list, apply job)
+        $listSize = $jobList.Count
+        $count = 0
+        $found = $false 
+        $jobOcid = $null
+        while ( ($false -eq $found) -and  ($count -lt $listSize) ) {
+
+            ## Only interested in most recent 'Apply' job
+            if ('Apply' -eq $jobList[$count].Operation) {
+                $found = $true
+                $jobOcid = $jobList[$count].id
+            } 
+
+            $count++
+        }
+
+        ## Check to see if job was found -- this should not happen
+        if ($null -eq $jobOcid) {
+            throw "No Apply job found"
+        }
+
+        try {
+            $outputList = Get-OCIResourcemanagerJobOutputsList -JobId $jobOcid -ErrorAction Stop
+        }
+        catch {
+            throw "Get-OCIResourcemanagerJobOutputsList: $_"
+        }
+
+        $outputList
 }
 catch {
     ## What else can we do?
