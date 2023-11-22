@@ -34,7 +34,7 @@ try {
             throw "Get-OCIResourcemanagerStackAssociatedResourcesList: Found no resources for this stack"
         }
 
-        ## Get reverse sorted list of Jobs, i.e. most recent first 
+        ## Get the reverse sorted list of Jobs, i.e. most recent first 
         try {
             $jobList = Get-OCIResourcemanagerJobsList -StackId $stack_ocid -LifecycleState Succeeded -ErrorAction Stop
         }
@@ -42,7 +42,7 @@ try {
             throw "Get-OCIResourcemanagerJobsList: $_"
         }
 
-        ## Traverse list to find latest (highest in list, apply job)
+        ## Traverse list to find the latest (highest in list) apply job
         $listSize = $jobList.Count
         $count = 0
         $found = $false 
@@ -58,7 +58,7 @@ try {
             $count++
         }
 
-        ## Check to see if job was found -- this should not happen
+        ## Check to see if Job was found -- this should not happen
         if ($null -eq $jobOcid) {
             throw "No Apply job found"
         }
