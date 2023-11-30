@@ -1,7 +1,9 @@
 
 param(
     [Parameter(Mandatory, HelpMessage='OCID of Stack')]
-    [String]$StackId
+    [String]$StackId,
+    [Parameter(HelpMessage='Filter on exp_ prefix')]
+    [Boolean]$FilterExt=$true
 )
 
 ## START: generic section
@@ -70,7 +72,13 @@ try {
             throw "Get-OCIResourcemanagerJobOutputsList: $_"
         }
 
-        $outputList
+        ## Only thos prefixed with "exp_"?
+        if ( $true -eq $FilterExt ) {
+            ($outputList.Items | Where-Object {$_.OutputName -Match "^exp_.*" })
+        } 
+        else {
+            $outputList.Items
+        } 
 }
 catch {
     ## What else can we do?
