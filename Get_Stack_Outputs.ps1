@@ -2,8 +2,8 @@
 param(
     [Parameter(Mandatory, HelpMessage='OCID of Stack')]
     [String]$StackId,
-    [Parameter(HelpMessage='Filter on exp_ prefix')]
-    [Boolean]$FilterExt=$true
+    [Parameter(HelpMessage='Filter on (<your-regexp)')]
+    [String]$FilterRegexp=$null
 )
 
 ## START: generic section
@@ -60,11 +60,12 @@ try {
             $count++
         }
 
-        ## Check to see if Job was found -- this should not happen
+        ## Check to see if Job was not found -- this should not happen
         if ($null -eq $jobOcid) {
-            throw "No Apply job found"
+            throw "No (Successful) Apply job found"
         }
 
+        ## Get OutputsList
         try {
             $outputList = Get-OCIResourcemanagerJobOutputsList -JobId $jobOcid -ErrorAction Stop
         }
@@ -72,13 +73,13 @@ try {
             throw "Get-OCIResourcemanagerJobOutputsList: $_"
         }
 
-        ## Only thos prefixed with "exp_"?
-        if ( $true -eq $FilterExt ) {
-            ($outputList.Items | Where-Object {$_.OutputName -Match "^exp_.*" })
-        } 
-        else {
+        ## Return list of outputs, apply filter if requested
+        if ($null -eq $FilterRegexp) {
             $outputList.Items
-        } 
+        }
+        else {
+            $outputList.Items | Where-Object {$_.OutputName -Match "${FilterRegexp}.*" }
+        }
 }
 catch {
     ## What else can we do?
