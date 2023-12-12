@@ -299,6 +299,7 @@ function New-OpuPortForwardingSessionFull {
     $ErrorActionPreference = "Stop" 
 
     try {
+
         ## Validate input
         if ((5 -gt $WaitForConnectSeconds) -or (60 -lt $WaitForConnectSeconds)) {
             throw "WaitForConnectSeconds is ${WaitForConnectSeconds}: must to be between 5 and 60!"
@@ -313,8 +314,8 @@ function New-OpuPortForwardingSessionFull {
         ## check that mandatory sw is installed    
         Test-OpuSshAvailable
 
+        # Import modules
         Import-Module OCI.PSModules.Bastion
-
         $tmpDir = Get-TempDir
         $now = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
 
@@ -337,7 +338,7 @@ function New-OpuPortForwardingSessionFull {
         catch {
             throw "ssh-keygen: $_"
         }
-    
+
         Out-Host -InputObject "Creating Port Forwarding Session to ${TargetHost}:${TargetPort}"
 
         try {

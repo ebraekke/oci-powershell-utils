@@ -18,7 +18,7 @@ OCID of Bastion with wich to create a session.
 OCID of connection containing the details about the database system. 
 
 .PARAMETER CmdAsVerbose
-Set to $true to perform current steps, which includes printing URL. 
+Set to $true get verbose output from mongosh, including printout of the URL. 
 $false is default and causes process to stop.
 
 .EXAMPLE 
@@ -53,11 +53,7 @@ Pop-Location
 ## END: generic section
 
 try {
-    if ($false -eq $ForceOutput) {
-        Out-Host -InputObject "ForceOutput must be true, exiting ..."
-        return $false
-    }
-  
+      
     ## Make sure mongosh is within reach first
     Test-OpuMongoshAvailable
 
@@ -69,7 +65,7 @@ try {
     $passwordBase64 = $adbConnectionDescription.PasswordBase64
     $targetHost = $adbConnectionDescription.TargetHost
     $targetPort = $adbConnectionDescription.TargetPort
-  
+    
     ## Create session and process, ask for dyn local port, get information in custom object -- used in teardown below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort 0
     $localPort = $bastionSessionDescription.LocalPort

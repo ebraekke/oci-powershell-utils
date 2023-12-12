@@ -37,6 +37,10 @@ Install-Module -Name OCI.PSModules.Vault
 Install-Module -Name OCI.PSModules.Resourcemanager
 ```
 
+
+
+
+
 ## Remove
 ```
 Uninstall-Module -Name OCI.PSModules.Bastion
