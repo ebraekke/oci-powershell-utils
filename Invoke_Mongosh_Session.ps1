@@ -18,8 +18,8 @@ OCID of Bastion with wich to create a session.
 OCID of connection containing the details about the database system. 
 
 .PARAMETER CmdAsVerbose
-Set to $true get verbose output from mongosh, including printout of the URL. 
-$false is default and causes process to stop.
+Set to $true get verbose output from mongosh. 
+$false is default.
 
 .EXAMPLE 
 ## Successfully invoking script and connecting to DB via bastion
