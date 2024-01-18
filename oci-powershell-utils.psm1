@@ -364,7 +364,7 @@ function New-OpuPortForwardingSessionFull {
         $sessionDetails.SessionTtlInSeconds   = $maxSessionTtlInSeconds
         $sessionDetails.BastionId             = $BastionId
         $sessionDetails.KeyType               = "PUB"
-        $sessionDetails.TargetResourceDetails = $TargetResourceDetails
+        $sessionDetails.TargetResourceDetails = $targetResourceDetails
         $sessionDetails.KeyDetails            = $keyDetails
     
         try {
@@ -386,10 +386,10 @@ function New-OpuPortForwardingSessionFull {
         $sshArgs = $bastionSession.SshMetadata["command"]
 
         ## First clean up any comments from Oracle(!)
-        $hashpos = $sshArgs.IndexOf('#')
-        if ($hash -gt 0) {
+        $hashPos = $sshArgs.IndexOf('#')
+        if ($hashPos -gt 0) {
 	        $strlen = $sshArgs.length
-	        $sshArgs = $sshArgs.Remove($hashpos, $strlen-$hashpos)
+	        $sshArgs = $sshArgs.Remove($hashPos, $strlen-$hashPos)
         }
 
         ## Supply relevant parameters
