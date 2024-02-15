@@ -1,5 +1,7 @@
 # ebraekke/oci-powershell-utils
 
+TODO: Add section about required policies. 
+
 PowerShell scripts that utilize the the PowerShell API for OCI.
 
 The goal is to highlight the possibilities inherent in the robust feature set of OCI
@@ -9,6 +11,7 @@ Key services used: Bastion and Database Tools in addition to MySQL and Autonomou
 
 There are three main scripts: 
 
+TODO: add mongosh section
 * `Invoke_Ssh_Session.ps1` invokes an ssh session via a Bastion.
 * `Invoke_Mysqlsh_Session.ps1` invokes a mysqlsh session via a Bastion.
 * `Invoke_Sqlcl_Session.ps1` invokes a sqlcl session via Bastion.
@@ -18,6 +21,36 @@ These highlight how a secure channel can be created via Bastion and then utilize
 Take a look at this [short video](https://github.com/ebraekke/oci-powershell-utils/issues/3#issue-1576272843) to see `Invoke_Sqlcl_Session.ps1` in action.
 
 [Here](doc/roadmap.md) is a brief outline of the plans for this project going forward. 
+
+## Prereqs 
+
+### OCI Policies 
+
+For all things related to database connections, i.e. Autonomous, MongoDB and MySQL: 
+```
+allow group <TargetGroup> to read database-family in compartment <TargetCompartment>
+allow group <TargetGroup> to read autonomous-database-family in compartment <TargetCompartment>
+allow group <TargetGroup> to read mysql-family in compartment <TargetCompartment>
+allow group <TargetGroup> to read secret-family in compartment <TargetCompartment>
+allow group <TargetGroup> to read database-tools-family in compartment <TargetCompartment>
+allow group <TargetGroup> to use database-tools-connections in compartment <TargetCompartment>
+
+allow group <TargetGroup> to use bastions in compartment <TargetCompartment>
+allow group <TargetGroup> to read instances in compartment <TargetCompartment>
+allow group <TargetGroup> to read vcn in compartment <TargetCompartment>
+allow group <TargetGroup> to manage bastion-session in compartment <TargetCompartment>
+allow group <TargetGroup> to read subnets in compartment <TargetCompartment>
+allow group <TargetGroup> to read instance-agent-plugins in compartment <TargetCompartment>
+allow group <TargetGroup> to read vnic-attachments in compartment <TargetCompartment>
+allow group <TargetGroup> to read vnics in compartment <TargetCompartment>
+```
+
+For things related to DevOps and managing Stacks in ORM (OCI Resource Manager):
+```
+allow group <TargetGroup> to use orm-stacks in compartment <TargetCompartment>
+allow group <TargetGroup> to read orm-jobs in compartment <TargetCompartment>
+allow group <TargetGroup> to manage orm-jobs in compartment <TargetCompartment> where any {target.job.operation = 'PLAN', target.job.operation = 'APPLY'}
+```
 
 ## Please be aware 
 
