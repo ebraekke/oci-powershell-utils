@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 <#
 .SYNOPSIS
 Invoke  an SSH  sesssion with a target host accessible through the OCI Bastion service.
