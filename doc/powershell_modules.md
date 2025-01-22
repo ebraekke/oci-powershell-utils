@@ -21,6 +21,23 @@ Binary     71.0.0                OCI.PSModules.Vault                 Core      {
 
 ```
 
+## Update 
+
+```
+Update-Module -Name OCI.PSModules.Common
+Update-Module -Name OCI.PSModules.Core
+Update-Module -Name OCI.PSModules.Bastion
+Update-Module -Name OCI.PSModules.Computeinstanceagent
+Update-Module -Name OCI.PSModules.Database
+Update-Module -Name OCI.PSModules.DatabaseTools
+Update-Module -Name OCI.PSModules.Identity
+Update-Module -Name OCI.PSModules.Mysql
+Update-Module -Name OCI.PSModules.Objectstorage
+Update-Module -Name OCI.PSModules.Secrets
+Update-Module -Name OCI.PSModules.Vault
+Update-Module -Name OCI.PSModules.Resourcemanager
+```
+
 ## Install
 ```
 Install-Module -Name OCI.PSModules.Common
