@@ -119,7 +119,7 @@ finally {
         Remove-OpuPortForwardingSessionFull -BastionSessionDescription $bastionSessionDescription
     }
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location

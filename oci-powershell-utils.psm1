@@ -629,6 +629,13 @@ $adbConnection = [PSCustomObject]@{
     ConnStr = $connStr
 }
 
+Connection object described in general here: 
+https://docs.oracle.com/en-us/iaas/tools/dotnet/101.3.0/api/Oci.DatabasetoolsService.Models.html
+
+Specifics here:
+https://docs.oracle.com/en-us/iaas/tools/dotnet/101.3.0/api/Oci.DatabasetoolsService.Models.DatabaseToolsConnectionOracleDatabase.html
+
+
 .DESCRIPTION
 By following the references on the connection object collect from both DB object and Secret in Vault:
 * Username

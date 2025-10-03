@@ -143,7 +143,7 @@ finally {
     Remove-Item $SshKey -ErrorAction SilentlyContinue
     $ErrorActionPreference = "Continue"
 
-    ## Finally, unload meodule from memory 
+    ## Finally, unload module from memory 
     Set-Location $PSScriptRoot
     Remove-Module oci-powershell-utils
     Pop-Location
