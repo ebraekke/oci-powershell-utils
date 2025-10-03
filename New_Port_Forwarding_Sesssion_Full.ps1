@@ -21,7 +21,7 @@ A path from the Bastion to the target is required.
 The Bastion session inherits TTL from the Bastion (instance). 
 
 .PARAMETER BastionId
-OCID of Bastion with wich to create a session. 
+OCID of Bastion with which to create a session. 
  
 .PARAMETER TargetHost
 IP address of target host. 

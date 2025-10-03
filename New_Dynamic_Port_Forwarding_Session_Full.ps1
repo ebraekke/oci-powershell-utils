@@ -17,7 +17,7 @@ $bastionSessionDescription = [PSCustomObject]@{
 .DESCRIPTION
 Creates a dynamix port forwarding session with the OCI Bastion Service and the required SOCKS 5 proxy endpoint.
 This combo will allow you to connect through the Bastion service via a local port and to your destination 
-inside of teh target VCN. 
+inside of the target VCN. 
 A path from the Bastion to the target is required.
 The Bastion session inherits TTL from the Bastion (instance). 
 
