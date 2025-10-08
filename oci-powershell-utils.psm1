@@ -152,6 +152,7 @@ $BastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
     LocalPort = $localPort
+    Target = "${TargetHost}:${TargetPort}"
 }
  
 
@@ -215,6 +216,7 @@ $bastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
     LocalPort = $localPort
+    Target = "${TargetHost}:${TargetPort}"
 }
         
 .DESCRIPTION
@@ -255,6 +257,7 @@ $bastion_session
 BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
 LocalPort      : 9084
+Target         : 10.0.0.251:22
 
 
 Stop-Process -InputObject $bastion_session.SShProcess
@@ -274,6 +277,7 @@ $bastion_session
 BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
 LocalPort      : 9374
+Target         : 10.0.0.251:3306
 
 
 Stop-Process -InputObject $bastion_session.SShProcess
@@ -417,6 +421,7 @@ function New-OpuPortForwardingSessionFull {
             BastionSession = $bastionSession
             SShProcess = $sshProcess
             LocalPort = $localPort
+            Target = "${TargetHost}:${TargetPort}"
         }
 
         Out-Host -InputObject "Waiting for creation of SSH tunnel to complete"
