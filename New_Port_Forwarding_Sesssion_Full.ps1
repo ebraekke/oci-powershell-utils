@@ -44,7 +44,7 @@ PublicKey      : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_43
 LocalPort      : 9084
 #>
 param(
-    [Parameter(Mandatory, HelpMessage='OCID Bastion of Bastion')]
+    [Parameter(Mandatory, HelpMessage='OCID of Bastion')]
     [String]$BastionId, 
     [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,

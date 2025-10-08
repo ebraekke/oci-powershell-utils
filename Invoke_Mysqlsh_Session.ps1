@@ -99,6 +99,7 @@ try {
     $localPort = $bastionSessionDescription.LocalPort
   
     $password = [Text.Encoding]::Utf8.GetString([Convert]::FromBase64String($passwordBase64))
+    ## Out-Host -InputObject "PWD = [${password}]"
 
     if ($true -eq $TestOnly) {
         Out-Host -InputObject "DEBUG: Waiting in 30 secs while you check stuff ..."
