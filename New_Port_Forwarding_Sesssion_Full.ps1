@@ -9,9 +9,9 @@ Return an object to the caller:
 $bastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
-    PrivateKey = $keyFile
-    PublicKey = "${keyFile}.pub"
     LocalPort = $localPort
+    Target = <Target_host>:<TheTarget_port>
+    SessionExpires = <SessionExpireTimeInLocalTime>
 }
         
 .DESCRIPTION
@@ -39,9 +39,9 @@ Waiting for creation of bastion session to complete
 $bastion_session
 BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
-PrivateKey     : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_43_21-9084
-PublicKey      : C:\Users\espenbr\AppData\Local\Temp/bastionkey-2023_01_17_14_43_21-9084.pub
 LocalPort      : 9084
+Target         : 10.0.1.54:22
+SessionExpires : 13.10.2025 14:26:05
 #>
 param(
     [Parameter(Mandatory, HelpMessage='OCID of Bastion')]
@@ -69,6 +69,10 @@ try {
     
     ## Create session and process, get information in custom object -- return below
     $bastionSessionDescription = New-OpuPortForwardingSessionFull -BastionId $BastionId -TargetHost $TargetHost -TargetPort $TargetPort -LocalPort $LocalPort
+
+    ## Need to store in local variable ... don't ask
+    $usedLocalPort = $bastionSessionDescription.LocalPort
+    Out-Host -InputObject "LocalPort: ${usedLocalPort}"
 
     $bastionSessionDescription
 }

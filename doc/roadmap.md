@@ -1,5 +1,11 @@
 # Outline of future plans and ideas
 
+Review 13-10-2025
+
+https://www.psplaybook.com/2025/02/06/powershell-modules-best-practices/
+
+>>
+
 Last updated: 24-feb-2023
 
 Short term:

@@ -76,7 +76,7 @@ The `Invoke_*.ps1` scripts have the same structure:
 * Validate presence of SSH software
 * Validate inputs
     * Collect additional information based on inputs
-* Validate presence of software needed for this specific invoke (for example "mysqlsh")  
+* Validate presence of software needed for this specific invocation (for example "mysqlsh")  
 * Delegate to cmdlet `New-OpuPortForwardingSessionFull`
     * Create ephemeral SSH key pair
     * Create Bastion session
@@ -99,9 +99,9 @@ It returns an object:
 $BastionSessionDescription = [PSCustomObject]@{
     BastionSession = <The_OCI_Bastion_Session_Object>
     SShProcess = <The_Process_Handle_for_the_SSH_Session>
-    PrivateKey = "<The name of the ephemeral private SSH key used>"
-    PublicKey = "<The name of the public key for the PrivateKey above>"
     LocalPort = <The_listening_port_for_the_SSH_session>
+    Target = <Target_host>:<TheTarget_port>
+    SessionExpires = <SessionExpireTimeInLocalTime>
 }
 ```
 

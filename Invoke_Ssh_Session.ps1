@@ -50,7 +50,7 @@ param(
     [String]$BastionId, 
     [Parameter(Mandatory,HelpMessage='IP address of target host')]   
     [String]$TargetHost,
-    [Parameter(Mandatory, HelpMessage='OCIC of secret hold SSH key')]
+    [Parameter(Mandatory, HelpMessage='OCID of secret hold SSH key')]
     [String]$SecretId,
     [Parameter(HelpMessage='Port at Target host')]
     [Int32]$TargetPort=22,
@@ -119,7 +119,7 @@ try {
 
     ## NOTE 1: 'localhost' and not '127.0.0.1'
     ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
-    ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
+    ## NOTE 2: -o 'NoHostAuthenticationForLocalhost yes' 
     ## Ensures no verification of locally forwarded port and localhost combos. 
     ssh -4 -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $sshKey
 }

@@ -217,6 +217,7 @@ $bastionSessionDescription = [PSCustomObject]@{
     SShProcess = $sshProcess
     LocalPort = $localPort
     Target = "${TargetHost}:${TargetPort}"
+    SessionExpires = <SessionExpireTimeInLocalTime>
 }
         
 .DESCRIPTION
@@ -258,6 +259,7 @@ BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
 LocalPort      : 9084
 Target         : 10.0.0.251:22
+SessionExpires : 13.10.2025 14:26:05
 
 
 Stop-Process -InputObject $bastion_session.SShProcess
@@ -278,6 +280,7 @@ BastionSession : Oci.BastionService.Models.Session
 SShProcess     : System.Diagnostics.Process (Idle)
 LocalPort      : 9374
 Target         : 10.0.0.251:3306
+SessionExpires : 04.10.2025 11:16:05
 
 
 Stop-Process -InputObject $bastion_session.SShProcess
@@ -318,7 +321,7 @@ function New-OpuPortForwardingSessionFull {
         ## check that mandatory sw is installed    
         Test-OpuSshAvailable
 
-        # Import modules
+        ## Import modules
         Import-Module OCI.PSModules.Bastion
         $tmpDir = Get-TempDir
         $now = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
@@ -422,6 +425,7 @@ function New-OpuPortForwardingSessionFull {
             SShProcess = $sshProcess
             LocalPort = $localPort
             Target = "${TargetHost}:${TargetPort}"
+            SessionExpires = (Get-Date).AddSeconds($bastionSession.SessionTtlInSeconds)
         }
 
         Out-Host -InputObject "Waiting for creation of SSH tunnel to complete"

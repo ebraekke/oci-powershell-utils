@@ -1,11 +1,10 @@
 <#
 .SYNOPSIS
-Removes all traces of previously created "full session", that is Bastion session, SSH process and ephemeral key pair. 
+Removes all traces of previously created "full session", that is Bastion session and SSH process.. 
 
 .DESCRIPTION
-The SSH process, the ephemeral key pair and then finally the bastion session are destroyed. 
+The SSH process and the bastion session are destroyed. 
 Process will will continue if a failure happens.
-File deletion failures are silent, you need to add debugging to get output.  
 Output related to the bastion session deletion will be displayed. 
 
 .PARAMETER BastionSessionDescription
@@ -13,16 +12,15 @@ Output related to the bastion session deletion will be displayed.
 $BastionSessionDescription = [PSCustomObject]@{
     BastionSession = $bastionSession
     SShProcess = $sshProcess
-    PrivateKey = $keyFile
-    PublicKey = "${keyFile}.pub"
     LocalPort = $localPort
+    Target = <Target_host>:<TheTarget_port>
+    SessionExpires = <SessionExpireTimeInLocalTime>
 }
  
 
 .EXAMPLE 
 ## Removing previously created full session
 Remove_Port_Forwarding_Session_Full.ps1 -BastionSessionDescription $full_session
-True
 
 .EXAMPLE 
 ## Attempting to remove a full session tha thas already been removed. 
@@ -36,6 +34,7 @@ For details on this operation's requirements, see https://docs.oracle.com/iaas/a
 Get more information on a failing request by using the -Verbose or -Debug flags. See https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/powershellconcepts.htm#powershellconcepts_topic_logging
 For more information about resolving this error, see https://docs.oracle.com/en-us/iaas/Content/API/References/apierrors.htm#apierrors_409__409_conflict
 If you are unable to resolve this Bastion issue, please contact Oracle support and provide them this full error message. 
+
 #>
 param (
     [Parameter(Mandatory,HelpMessage='Full Bastion Session Description Object')]
@@ -50,7 +49,7 @@ Import-Module './oci-powershell-utils.psm1'
 Pop-Location
 
 try {
-    ## Request cleanup, this will always "SUCCED", that is continue to tear down until all avenues have been explored  
+    ## Request cleanup, this will always "SUCCED", that is it continue to tear down until all avenues have been explored  
     Remove-OpuPortForwardingSessionFull -BastionSessionDescription $BastionSessionDescription
 
 }

@@ -30,7 +30,7 @@ Set to $true to perform setup and teardown, but skip the start of msqlsh.
 Incurs a 30 second wait. 
 
 .EXAMPLE 
-## Creating a SSH session to the default port with a non-default user (not 10.0.0.49 i Bastion service private ip)
+## Creating a SSH session to the default port with a non-default user (note 10.0.0.49 is Bastion service private ip)
 .\Invoke_Ssh_Session.ps1 -BastionId $bastion_ocid -TargetHost $target_ip -SshKey ~/.ssh/id_rsa -OsUser ubuntu
 Creating Port Forwarding Session to 10.0.0.251:22
 Waiting for creation of bastion session to complete
@@ -100,7 +100,7 @@ try {
 
     ## NOTE 1: 'localhost' and not '127.0.0.1'
     ## Behaviour with both ssh and putty is unreliable when not using 'localhost'.
-    ## NOTE2: -o 'NoHostAuthenticationForLocalhost yes' 
+    ## NOTE 2: -o 'NoHostAuthenticationForLocalhost yes' 
     ## Ensures no verification of locally forwarded port and localhost combos. 
     ssh -4 -o 'NoHostAuthenticationForLocalhost yes' -p $localPort localhost -l $OsUser -i $SshKey
 }
